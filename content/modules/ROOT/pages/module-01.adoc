@@ -43,6 +43,7 @@ ifdef::vmware[]
 This feature is similar to VMware's Compute vMotion feature, and Distributed Resource Scheduler (DRS) for VM placement.
 ====
 ****
+endif::[]
 
 In this lab, you will be performing a live migration of Virtual Machine from one compute node to another. To do this, you will access a running VM, determine its current node, and then migrate it to another node.
 
