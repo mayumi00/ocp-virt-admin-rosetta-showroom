@@ -190,8 +190,8 @@ This feature is similar to VMware's Storage vMotion feature.
 
 This also includes the Storage Distributed Resource Scheduler (SDRS) for disk placement.
 ====
-endif::[]
 ****
+endif::[]
 
 [#storagerequirements]
 === Requirements
