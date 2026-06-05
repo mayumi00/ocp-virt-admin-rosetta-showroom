@@ -1,28 +1,27 @@
-[#fencing]
+
 = Fencing and How to Handle Node Failure
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
-EN GUARDE! 🤺
-
-Fencing and Self Node Remediation are similar to VMware's Infrastructure HA and Node Failure features.
+フェンシング（Fencing）および自己ノードリメディエーション（Self Node Remediation）は、VMwareのインフラストラクチャHA（Infrastructure HA）およびノード障害（Node Failure）機能に類似しています。
 ****
 endif::[]
 
-Fencing is a vital mechanism that safeguards cluster resources and ensures data integrity. It works by isolating an unresponsive or failed node. This process is crucial to prevent the "split-brain" scenario, which occurs when multiple nodes try to write to shared storage simultaneously, inevitably leading to data corruption.
+フェンシング（Fencing）は、クラスターリソースを保護し、データの整合性を確保するための極めて重要なメカニズムです。これは、応答しないノードや障害の発生したノードを隔離することによって機能します。このプロセスは、複数のノードが共有ストレージに同時に書き込もうとすることで発生する「スプリットブレイン（Split-brain）」シナリオを防ぎ、データの破損を確実に回避するために不可欠です。
 
-This lab demonstrates the capabilities of the *Node Health Check Operator* and the *Self Node Remediation Operator*. You will simulate a node failure to observe the virtual machine migration process and subsequent node recovery.
+このラボでは、*Node Health Check Operator* と *Self Node Remediation Operator* の機能を実証します。ノードの障害をシミュレートし、仮想マシンのマイグレーションプロセスとその後のノードの回復を観察します。
+
 
 [IMPORTANT]
 ====
-While this lab demonstrates fencing through the *Node Health Check (NHC)* and *Self Node Remediation (SNR)* operators, the recommendation to the field is that you strongly push customers towards *Fence Agents Remediation* as it provides the fastest workload recovery time.
+このラボでは *Node Health Check (NHC)* および *Self Node Remediation (SNR)* オペレーターを介したフェンシングの実演を行いますが、現場への推奨事項としては、ワークロードの回復時間が最も短い *Fence Agents Remediation* の採用を顧客に強く促すことです。
 
-NHC and SNR are only recommended in situations where there is no management interface or if the BMC is unreachable from cluster.
+NHC と SNR は、管理インターフェースが存在しない場合や、クラスターから BMC にアクセスできない状況でのみ推奨されます。
 
-Work is still evolving in this space. Engineering is working on additional enhancements to bring recovery time to under 60 seconds.
+この領域の機能は現在も進化を続けています。開発チームは、回復時間を60秒未満に短縮するための追加の機能拡張に取り組んでいます。
 
-You can follow https://issues.redhat.com/browse/VIRTSTRAT-77[Fencing: Additional out-of-band health checks for faster remediation] as that work progresses.
+開発の進捗状況については、 https://issues.redhat.com/browse/VIRTSTRAT-77[Fencing: Additional out-of-band health checks for faster remediation] をフォローして確認することができます。
 ====
 
 include::lab-access.adoc[]
@@ -30,43 +29,37 @@ include::lab-access.adoc[]
 [#fencinginstructions]
 == Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
-
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
-. Using the OpenShift Console, from the left side panel, navigate to *Compute → NodeHealthChecks*.
 
+. OpenShiftコンソールを使用し、左側のサイドパネルから *Compute（コンピュート） → NodeHealthChecks（ノードヘルスチェック）* に移動します。
 +
-Click the *Create NodeHealthCheck* button
+*Create NodeHealthCheck（NodeHealthCheckの作成）* ボタンをクリックします。
 
 +
 image::exercise6/06-image-nodehealthcheck-v2.png[title="Create NodeHealthCheck", link=self, window=blank, width=100%]
-
 +
-. Name the *NodeHealthCheck* `workerhealthcheck`.
-
+. *NodeHealthCheck* の名前を `workerhealthcheck` にします。
 +
-Leave the *Remediation template* set to *Self node remediation*.
-
+*Remediation template（リメディエーションテンプレート）* は *Self node remediation（自己ノードリメディエーション）* のままにします。
 +
-From the *Selector labels* dropdown, select *Worker* under *Role*. You do not need to select any *Labels*.
+*Selector labels（セレクターラベル）* のドロップダウンから、*Role* の下にある *Worker* を選択します。*Labels（ラベル）* を選択する必要はありません。
 
 +
 image::exercise6/06-image-nodehealthcheck2.png[title="Create NodeHealthCheck", link=self, window=blank, width=100%]
 
 +
-Further down on the same screen, leave *Min healthy* and both *Type* and *Status* drop downs as the default.
-
+同じ画面のさらに下部で、*Min healthy（最小健全数）*、ならびに *Type（タイプ）* と *Status（ステータス）* の両方のドロップダウンはデフォルトのままにします。
 +
-Change duration to *5s* for both of the *Unhealthy Conditions*.
-
+2つの *Unhealthy Conditions（不健全な条件）* の期間（Duration）を両方とも *5s* に変更します。
 +
 image::exercise6/06-image-nodehealthcheck3.png[title="Create NodeHealthCheck", link=self, window=blank, width=100%]
 
 +
-Click *Create*
+*Create（作成）* をクリックします。
 
 +
-. Next, find the node where *fencing-vm1* is running. In this example, the node is *worker-cluster-r2k68-1*.
+. 次に、*fencing-vm1* が実行されているノードを見つけます。この例では、ノードは *worker-cluster-r2k68-1* です。
 
 +
 [source,text,role=execute]
@@ -74,16 +67,15 @@ Click *Create*
 ----
 oc get vmi fencing-vm1 -n fencing
 ----
-
 +
+[source,console]
 .Output
 ----
 NAME          AGE    PHASE     IP            NODENAME                 READY
 fencing-vm1   169m   Running   10.235.0.29   worker-cluster-r2k68-1   True
 ----
-
 +
-To be more percise, you can use *jq* to only return the *nodeName* and assign it to a variable for later use:
+より正確に実行するため、*jq* を使用して *nodeName* のみを返し、後で使用できるように変数に割り当てます。
 
 +
 [source,text,role=execute]
@@ -91,22 +83,21 @@ To be more percise, you can use *jq* to only return the *nodeName* and assign it
 ----
 node=`oc get vmi fencing-vm1 -n fencing -o json | jq -r '.status.nodeName'`
 ----
-
 +
 [source,text,role=execute]
 .Show node name
 ----
 echo ${node}
 ----
-
 +
+[source,console]
 .Output
 ----
 worker-cluster-r2k68-1
 ----
 
 +
-. Before we trigger a failure, in second terminal, start a watch to monitor the state of the nodes so you can see your worker remediate.
+. 障害を発生させる前に、2つ目のターミナルでノードの状態を監視するウォッチ（Watch）を開始し、ワーカーノードがリメディエーション（修復）される様子を確認できるようにします。
 
 +
 [source,text,role=execute]
@@ -114,9 +105,8 @@ worker-cluster-r2k68-1
 ----
 oc get nodes -w
 ----
-
 +
-. Create a failure condition, access the node from step 4, using the *${node}* variable and *oc debug*, to put it into an unhealthy state by stopping the *kubelet* service.
+. 障害条件を作成します。ステップ4のノードに対し、*${node}* 変数と *oc debug* を使用してアクセスし、*kubelet* サービスを停止してノードを不健全な状態にします。
 
 +
 [source,text,role=execute]
@@ -124,7 +114,6 @@ oc get nodes -w
 ----
 oc debug node/${node}
 ----
-
 +
 [source,text,role=execute]
 .chroot
@@ -140,13 +129,14 @@ systemctl stop kubelet
 ----
 
 +
+[source,console]
 .Output
 ----
 Removing debug pod ...
 ----
 
 +
-. Once the *debug pod* exists, monitor the status of your Virtual Machine, *fencing-vm1*. You will see that the self remediation process is isolating the node and migrating the workloads.
+. *debug ポッド* が終了したら、仮想マシン *fencing-vm1* のステータスを監視します。自己リメディエーションプロセスによってノードが隔離され、ワークロードがマイグレーションされるのを確認できます。
 
 +
 [source,text,role=execute]
@@ -156,25 +146,23 @@ oc get vmi fencing-vm1 -n fencing -w
 ----
 
 +
-. Using the OpenShift Console, from the left side panel, navigate to *Ecosystem → Installed Operators → Self Node Remediation Operator → Self Node Remediation*.
-
+. OpenShiftコンソールを使用し、左側のサイドパネルから *Ecosystem（エコシステム） → Installed Operators（インストール済みのオペレーター） → Self Node Remediation Operator → Self Node Remediation* に移動します。
 +
 [NOTE]
 ====
-The *SelfNodeRemediation* operand will not show up until the node goes *NotReady*, this will take a few seconds.
+ノードが *NotReady* 状態になるまで *SelfNodeRemediation* オペランドは表示されません。これには数秒かかります。
 ====
 
 +
-Here you can see the self remediation object and follow its progress against the node.
+ここでは、自己リメディエーションオブジェクトを確認し、ノードに対する処理の進捗を追うことができます。
 
 +
 image::exercise6/06-image-nodehealthcheck4.png[title="Node remediation running", link=self, window=blank, width=100%]
 
 +
-. From your two terminal windows, you will see:
-
+. 2つのターミナルウィンドウから、以下の挙動が確認できます。
 +
-.. The worker node being remediated, going from *Ready* → *NotReady* → *NotReady,SchedulingDisabled* → *Ready,SchedulingDisabled* → *Ready*
+.. ワーカーノードがリメディエーションされ、*Ready* → *NotReady* → *NotReady,SchedulingDisabled* → *Ready,SchedulingDisabled* → *Ready* と遷移していく様子。
 
 +
 [source,console]
@@ -192,9 +180,8 @@ worker-cluster-r2k68-1   Ready,SchedulingDisabled      worker   4h17m   v1.33.5
 worker-cluster-r2k68-1   Ready                         worker   4h18m   v1.33.5
 worker-cluster-r2k68-1   Ready                         worker   4h18m   v1.33.5
 ----
-
 +
-.. The VM will go from a *Running* → *Failed* state when the nodes fails, followed by *Pending* → *Scheduling* → *Scheduled* → *Running* as it is remediated and migrated to a new node.
+.. ノードが故障したときにVMが *Running* → *Failed* 状態になり、続いてリメディエーションが行われて新しいノードに移行されるにつれて *Pending* → *Scheduling* → *Scheduled* → *Running* へと遷移していく様子。
 
 +
 [source,console]
@@ -210,17 +197,13 @@ fencing-vm1   10s   Scheduled                  worker-cluster-r2k68-3   False
 fencing-vm1   10s   Running      10.232.2.41   worker-cluster-r2k68-3   True
 ----
 
-+
-
-
 [IMPORTANT]
 ====
-Stop the *fencing-vm1* VM using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して *fencing-vm1* VM を停止してください。
 
 [,shell,role="execute wrap",subs="attributes"]
 ----
 virtctl stop fencing-vm1 -n fencing
 ----
-
 *VM fencing-vm1 was scheduled to stop*
 ====
