@@ -7,6 +7,7 @@ OpenShift Affinity Rules are similar to VMWare's Virtual Machine Affinity Rules.
 If one were to also employ the OpenShift Descheduler for smart automated rescheduling of VMs, this feature would be similar to VMware's VM Affinity Rules coupled with the Distributed Resource Scheduler (DRS).
 But that is not covered in this module.
 ****
+endif::[]
 
 This lab showcases how to use and apply Node Affinity, Pod Affinity, and Pod-Anti Affinity against Virtual Machines. The lab focuses on the practical application of these principles in real-world scenarios and strengthens your technical understanding of how they work.
 
