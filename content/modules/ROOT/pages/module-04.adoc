@@ -1,59 +1,55 @@
+
 = Affinity and Anti-Affinity for VM Placement
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
-OpenShift Affinity Rules are similar to VMWare's Virtual Machine Affinity Rules.
-If one were to also employ the OpenShift Descheduler for smart automated rescheduling of VMs, this feature would be similar to VMware's VM Affinity Rules coupled with the Distributed Resource Scheduler (DRS).
-But that is not covered in this module.
+OpenShiftのアフィニティルール（Affinity Rules）は、VMwareの仮想マシンアフィニティルールに類似しています。
+さらに、VMのスマートで自動化された再スケジュールを行うために OpenShift Descheduler を採用した場合、この機能は VMware の VMアフィニティルールと Distributed Resource Scheduler (DRS) を組み合わせたものに類似することになります。
+ただし、それについてはこのモジュールでは扱いません。
 ****
 endif::[]
 
-This lab showcases how to use and apply Node Affinity, Pod Affinity, and Pod-Anti Affinity against Virtual Machines. The lab focuses on the practical application of these principles in real-world scenarios and strengthens your technical understanding of how they work.
+このラボでは、仮想マシンに対してノードアフィニティ（Node Affinity）、ポッドアフィニティ（Pod Affinity）、およびポッドアンチアフィニティ（Pod Anti-Affinity）を使用および適用する方法を紹介します。このラボでは、現実世界のシナリオにおけるこれらの原則の具体的な適用に焦点を当て、それらがどのように機能するかについての技術的な理解を深めます。
 
 include::lab-access.adoc[]
 
 [#nodeaffinity]
 == Node Affinity
 
-Node Affinity is a set of rules that guide the scheduler to attract a Virtual Machine to a specific node or group of nodes. These rules rely on matching labels that are applied to the nodes.
+ノードアフィニティ（Node Affinity）は、特定のノードまたはノードのグループに仮想マシンを引き付けるようスケジューラーに指示する一連のルールです。これらのルールは、ノードに適用されているラベルの一致に依存します。
 
-The core use case for Node Affinity is to ensure that a VM runs only on nodes that possess specific features or needs, such as a particular GPU model or a high amount of RAM, by matching the corresponding labels on the node.
+ノードアフィニティの主なユースケースは、ノード上の対応するラベルを一致させることで、特定のGPUモデルや大容量のRAMなど、特定の機能や要件を持つノード上でのみVMが実行されるようにすることです。
 
-This lab will demonstrate how Node Affinity is set up and how it functions.
+このラボでは、ノードアフィニティがどのように設定され、どのように機能するかを実証します。
 
 [#nodeaffinityinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
-
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
 
-. Start the *node-affinity-vm* Virtual Machine
+. *node-affinity-vm* 仮想マシンを起動します。
 
 +
 [.wrap,console,role=execute]
 ----
 virtctl start node-affinity-vm -n affinity
 ----
-
 +
 [source,console]
 ----
 VM node-affinity-vm was scheduled to start
 ----
-
 +
-. Verify the *VirtualMachineInstance* is running and see what node it is running on. If the *VirtualMachineInstance* is still in the scheduling phase, please execute the command again.
+. *VirtualMachineInstance* が実行中であることを確認し、どのノードで動作しているかを確認します。*VirtualMachineInstance* がまだスケジュール（Scheduling）フェーズにある場合は、コマンドを再実行してください。
 +
 [.wrap,console,role=execute]
 ----
 oc get vmi -n affinity
 ----
-
 +
-The output will look similar to the following, with a different *IP* and *NODENAME*:
-
+出力は以下のようになります（*IP* や *NODENAME* は環境によって異なります）。
 +
 [source,console]
 ----
@@ -62,19 +58,15 @@ node-affinity-vm   57s   Running   10.232.1.153   control-plane-cluster-dvddt-1 
 ----
 
 +
-. Set a label `zone=east` on any node where the *node-affinity-vm* is currently *not* running.
-
+. *node-affinity-vm* が現在実行されて *いない* いずれかのノードに、`zone=east` というラベルを設定します。
 +
-The following command returns the name of 1 node where the *node-affinity-vm* VM is not running and labels it:
-
+次のコマンドは、*node-affinity-vm* VMが実行されていないノードの名前を1つ返し、それにラベルを付与します。
 +
-... Gets a list of all of nodes (*oc get nodes -o name*)
-
+... すべてのノードのリストを取得します（*oc get nodes -o name*）
 +
-... Does an inverted-match to select non-matching lines and returns 1 result (*grep -v -m 1*)
-
+... 反転マッチ（除外検索）を行って一致しない行を選択し、1つの結果を返します（*grep -v -m 1*）
 +
-... With the *nodeName* where the *node-affinity-vm* VM is currently running (*oc get vmi node-affinity-vm -n affinity -o json | jq -r '.status.nodeName'*)
+... *node-affinity-vm* VMが現在実行されている *nodeName* を指定します（*oc get vmi node-affinity-vm -n affinity -o json | jq -r '.status.nodeName'*）
 
 +
 [source,text,role=execute]
@@ -84,95 +76,86 @@ oc label $(oc get nodes -o name | grep -v -m 1 $(oc get vmi node-affinity-vm -n 
 ----
 
 +
+[source,console]
 .Output
 ----
 node/worker-cluster-dvddt-1 labeled
 ----
 
 +
-Alternatively, using the OpenShift Console, from the left side panel, navigate to *Compute → Nodes*, pick a node where the *node-affinity-vm* is not running, click the 3 dots and select *Edit labels*.
+あるいは、OpenShiftコンソールを使用し、左側のサイドパネルから *Compute（コンピュート） → Nodes（ノード）* に移動し、*node-affinity-vm* が実行されていないノードを選択し、3つのドットをクリックして *Edit labels（ラベルの編集）* を選択します。
 
 +
 image::exercise4/04-image-affinity-v2.png[title="Edit Node Labels", link=self, window=blank, width=100%]
 
 +
-In the new window, enter *zone=east* and click *Save*
+新しいウィンドウで *zone=east* と入力し、*Save（保存）* をクリックします。
 
 +
 image::exercise4/04-image-affinity-labels.png[title="Add Label", link=self, window=blank, width=100%]
 
 +
-. Make sure the label was applied.
+. ラベルが適用されたことを確認します。
 
 +
 [source,text,role=execute]
 .Check the label
 ----
-oc get nodes <worker you just labeled> --show-labels | grep -i zone=east
+oc get nodes  --show-labels | grep -i zone=east
 ----
 
 +
-Alternatively, using the OpenShift Console, from the left side panel, navigate to *Compute → Nodes*, select the node where you added the label, click the *Details* tab and check the *Labels* section for *zone=east*.
+あるいは、OpenShiftコンソールを使用し、左側のサイドパネルから *Compute（コンピュート） → Nodes（ノード）* に移動し、ラベルを追加したノードを選択して *Details（詳細）* タブをクリックし、*Labels（ラベル）* セクションに *zone=east* があることを確認します。
 
 +
 image::exercise4/04-image-affinity-check-labels.png[title="Check the Label", link=self, window=blank, width=100%]
 
 +
-. Using the OpenShift Console, from the left side panel, navigate to *Virtualization → VirtualMachines*.
+. OpenShiftコンソールを使用し、左側のサイドパネルから *Virtualization（仮想化） → VirtualMachines（仮想マシン）* に移動します。
 
 +
-Under *All projects*, select the *affinity* namespace and click on the Virtual Machine named *node-affinity-vm*.
+*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*node-affinity-vm* という名前の仮想マシンをクリックします。
 
 +
-. Click on the *Configuration* tab.
+. *Configuration（構成）* タブをクリックします。
 
 +
 image::exercise4/04-image-affinity01.png[title="Node Affinity Navigation", link=self, window=blank, width=100%]
 
 +
-. From the *Configuration* tab, select *Scheduling* and click the *blue pencil* icon under *Affinity rules* to add a new one.
-
+. *Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 +
 image::exercise4/04-image-affinity02.png[title="Node Affinity add rule", link=self, window=blank, width=100%]
-
 +
-. Click *Add affinity rule*.
-
+. *Add affinity rule（アフィニティルールの追加）* をクリックします。
 +
 image::exercise4/04-image-affinity02a.png[title="Node Affinity add rule", link=self, window=blank, width=100%]
 
 +
-. Change the *Condition* to *Preferred during scheduling* and set the *weight* to *75*.
-
+. *Condition（条件）* を *Preferred during scheduling（スケジューリング時の優先度）* に変更し、*weight（重み）* を *75* に設定します。
 +
-Under *Node Labels* click *Add Expression*.
-
+*Node Labels（ノードラベル）* の下にある *Add Expression（式の追加）* をクリックします。
 +
-Set the *Key* field to `zone` and the *Values* field to `east` and click *Add*.
-
+*Key（キー）* フィールドに `zone`、*Values（値）* フィールドに `east` を設定し、*Add（追加）* をクリックします。
 +
-This is the same label applied to the node earlier.
-
+これは、先ほどノードに適用したものと同じラベルです。
 +
-Your Final Node Affinity rule will look like the picture below.
-
+最終的なノードアフィニティルールは下の画像のようになります。
 +
-Confirm this is true and click *Save affinity rule*.
-
+これを確認し、*Save affinity rule（アフィニティルールの保存）* をクリックします。
 +
 image::exercise4/04-image-affinity03.png[title="Node Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. Click *Apply rules*.
+. *Apply rules（ルールの適用）* をクリックします。
 
 +
 image::exercise4/04-image-affinity03a.png[title="Node Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. Let's take a look at the Node Affinity rule on *node-affinity-vm*.
-
+. *node-affinity-vm* のノードアフィニティルールを確認してみましょう。
 +
-You can view this information through the GUI by inspecting the *node-affinity-vm* *YAML*, or using the CLI.
+この情報は、GUIで *node-affinity-vm* の *YAML* を検査するか、CLIを使用して確認できます。
 
 +
 [source,text,role=execute]
@@ -182,19 +165,18 @@ oc get vm node-affinity-vm -n affinity -o jsonpath='{.spec.template.spec.affinit
 ----
 
 +
+[source,console]
 .Output
 ----
 {"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"preference":{"matchExpressions":[{"key":"zone","operator":"In","values":["east"]}]},"weight":75}]}}
 ----
++
+. 外部からの力によってVMが移動または再起動されない限り、新しいアフィニティルールは効果を発揮しません。
++
+手動で変更を適用するには、VMをライブマイグレーションするか再起動します。自動的に強制適用させるには、*Descheduler* に *AffinityAndTaints* プロファイルを構成します。
 
 +
-. Without an external force to move or restart the VM, new Affinity rules do not take effect.
-
-+
-To apply the changes manually, you can live migrate or restart the VM. For automatic enforcement, you can configure the *Descheduler* with the *AffinityAndTaints* profile.
-
-+
-. Restart the *node-affinity-vm* VM.
+. *node-affinity-vm* VMを再起動します。
 
 +
 [.wrap,console,role=execute]
@@ -207,12 +189,10 @@ virtctl restart node-affinity-vm -n affinity
 ----
 VM node-affinity-vm was scheduled to restart
 ----
-
 +
-. Once the VM restarts, it will be running on the node with the affinity label.
-
+. VMが再起動すると、アフィニティラベルが設定されたノード上で実行されます。
 +
-You can validate this in the GUI by navigating to the *node-affinity-vm*, and looking at the *Node* name in the *General* box on the right hand side of the *VirtualMachine details* page or using the OCP CLI.
+これは、GUIで *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
@@ -220,8 +200,8 @@ You can validate this in the GUI by navigating to the *node-affinity-vm*, and lo
 ----
 oc get vmi node-affinity-vm -n affinity
 ----
-
 +
+[source,console]
 .Output
 ----
 NAME               AGE   PHASE     IP            NODENAME                 READY
@@ -230,44 +210,37 @@ node-affinity-vm   58s   Running   10.233.0.46   worker-cluster-t96sv-2   True
 
 [#podaffinity]
 == Pod Affinity
-Pod Affinity is a scheduling rule that co-locates a VMs (or pods) with a specific labels onto the same node.
+ポッドアフィニティ（Pod Affinity）は、特定のラベルを持つVM（またはポッド）を同じノード上にコロケーション（同配置）させるスケジューリングルールです。
 
-The primary benefit of using pod affinity is to improve performance for dependent VMs or services that require low-latency communication by guaranteeing their placement on the same node.
+ポッドアフィニティを使用する主なメリットは、低遅延通信を必要とする依存関係のあるVMやサービスを確実に同じノードに配置することで、パフォーマンスを向上させられる点にあります。
 
-This lab will demonstrate the setup and usage of Pod Affinity.
+このラボでは、ポッドアフィニティの設定と使用方法を実証します。
 
 [#podaffinityinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
-
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
-. To begin, we are going to leverage our existing *node-affinity-vm* from the previous lab. This will serve as 1 of the 2 VMs we use to demonstrate Affinity.
 
+. まず、前のラボの既存の *node-affinity-vm* を活用します。これが、アフィニティを実証するために使用する2つのVMのうちの1つとして機能します。
 +
-There are 2 ways to add label:
-
+ラベルを追加する方法は2つあります。
 +
-.. Editing the VM YAML from the CLI or Console
-
+.. CLIまたはコンソールからVMのYAMLを編集する
 +
-.. Using *oc label*
-
+.. *oc label* を使用する
 +
-Both methods have benefits and drawbacks. In many production use cases, they will be used together.
-
+どちらの方法にもメリットとデメリットがあります。多くの本番環境のユースケースでは、これらが組み合わせて使用されます。
 +
 [loweralpha, start=1]
-... Editing the VM YAML requires a restart of the VM for the new labels to take effect. This is because the label on the VM must get passed down to the *virt-launcher* pod and that only happens after a restart.
+... VMのYAMLを編集する場合、新しいラベルを有効にするためにVMの再起動が必要です。これは、VM上のラベルが *virt-launcher* ポッドに引き渡される必要があり、それが再起動後にしか行われないためです。
++
+... *oc label* の使用は一時的（エフェメラル）であり、VMの再起動後に失われます。これは、ラベルが *virt-launcher* ポッドに直接適用されて即座に効果を発揮しますが、VMオブジェクト自体には設定されないためです。
 
 +
-... Using *oc label* is ephemeral and is lost after a VM restart. This is because the label is applied directly to the *virt-launcher* pod, with immediate effect, but not set on the VM object.
-
+. 設定を永続的なものにするため、OpenShift CLIを使用して *node-affinity-vm* に `app: fedora` というラベルを設定します。
 +
-. To make things permanent, use the OpenShift CLI to set a label `app: fedora` on the *node-affinity-vm*.
-
-+
-Add the label under *spec.template.metadata.labels* NOT *metadata.labels* at the top of the YAML:
+ラベルは、YAMLの最上部にある *metadata.labels* ではなく、*spec.template.metadata.labels* の下に追加してください。
 
 +
 [source,text,role=execute]
@@ -275,6 +248,7 @@ Add the label under *spec.template.metadata.labels* NOT *metadata.labels* at the
 ----
 oc edit vm node-affinity-vm -n affinity
 ----
+
 +
 [source,yaml]
 ----
@@ -285,7 +259,7 @@ metadata:
     kubemacpool.io/transaction-timestamp: "2026-01-16T18:46:28.5004163Z"
   generation: 3
   labels:
-    app.kubernetes.io/instance: module-affinity  <---Do not put the label here
+    app.kubernetes.io/instance: module-affinity  <---ここにはラベルを書かないでください
   name: node-affinity-vm
   namespace: affinity
   resourceVersion: "714752"
@@ -315,7 +289,7 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
-        app: fedora <---Put the label here
+        app: fedora <---ここにラベルを書いてください
         network.kubevirt.io/headlessService: headless
     spec:
       affinity:
@@ -363,7 +337,6 @@ spec:
         name: cloudinitdisk
 ----
 
-
 +
 .Save and Exit
 [source,console]
@@ -372,16 +345,15 @@ spec:
 ----
 
 +
-Make sure the VM was edited successful and did not fail for any reason.
+VMの編集が正常に完了し、エラーにならなかったことを確認します。
 
 +
 [source,console]
 ----
 virtualmachine.kubevirt.io/node-affinity-vm edited
 ----
-
 +
-. Restart the *node-affinity-vm* so the label is applied to the *virt-launcher* pod.
+. ラベルを *virt-launcher* ポッドに適用するために、*node-affinity-vm* を再起動します。
 
 +
 [.wrap,console,role=execute]
@@ -394,12 +366,10 @@ virtctl restart node-affinity-vm -n affinity
 ----
 VM node-affinity-vm was scheduled to restart
 ----
-
 +
-. Next, we are going to configure the *pod-affinity-vm*.
-
+. 次に、*pod-affinity-vm* の構成を行います。
 +
-.. Begin by starting *pod-affinity-vm* Virtual Machine
+.. まず、*pod-affinity-vm* 仮想マシンを起動します。
 
 +
 [.wrap,console,role=execute]
@@ -414,14 +384,14 @@ VM pod-affinity-vm was scheduled to start
 ----
 
 +
-. Verify the *VirtualMachineInstance* is running and see what node it is running on. If the *VirtualMachineInstance* is still in the scheduling phase, please execute the command again.
+. *VirtualMachineInstance* が実行中であることを確認し、どのノードで動作しているかを確認します。*VirtualMachineInstance* がまだスケジュールフェーズにある場合は、コマンドを再実行してください。
 +
 [.wrap,console,role=execute]
 ----
 oc get vmi -n  affinity pod-affinity-vm
 ----
-
 +
+[source,console]
 .Output
 ----
 NAME               AGE    PHASE     IP             NODENAME                        READY
@@ -429,52 +399,41 @@ pod-affinity-vm    1m2s   Running   10.232.0.218   control-plane-cluster-dvddt-1
 ----
 
 +
-. Once the VM has started, using the OpenShift Console, from the left side panel, navigate to *Virtualization → VirtualMachines*
-
+. VMが起動したら、OpenShiftコンソールを使用し、左側のサイドパネルから *Virtualization（仮想化） → VirtualMachines（仮想マシン）* に移動します。
 +
-Under *All projects*, select the *affinity* namespace and click on the Virtual Machine named *pod-affinity-vm* and click on the *Configuration* tab.
-
+*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-affinity-vm* という名前の仮想マシンをクリックして *Configuration（構成）* タブをクリックします。
 +
-From the *Configuration* tab, select *Scheduling* and click the *blue pencil* icon under *Affinity rules* to add a new one.
+*Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 
 +
 image::exercise4/04-image-affinity04.png[title="Pod Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. From the new window, click *Add affinity rule*.
-
+. 新しいウィンドウから、*Add affinity rule（アフィニティルールの追加）* をクリックします。
 +
-. Change the *type* to *Workload (pod) Affinity*
-
+. *Type（タイプ）* を *Workload (pod) Affinity（ワークロード（ポッド）アフィニティ）* に変更します。
 +
-. Keep the *Condition* set to *Required during scheduling* and leave the *Topology key* at the default value.
-
+. *Condition（条件）* は *Required during scheduling（スケジューリング時に必須）* のままにし、*Topology key（トポロジーキー）* もデフォルト値のままにします。
 +
-. Click *Add expression* under *Workload labels*.
-
+. *Workload labels（ワークロードラベル）* の下にある *Add expression（式の追加）* をクリックします。
 +
-Set the *Key* field to `app` and the *Values* field to `fedora` and click *Add*.
-
+*Key（キー）* フィールドに `app`、*Values（値）* フィールドに `fedora` を設定し、*Add（追加）* をクリックします。
 +
-This is the same label applied to the *node-affinity-vm* earlier.
-
+これは、先ほど *node-affinity-vm* に適用したものと同じラベルです。
 +
-Your Final Pod Affinity rule will look like the picture below.
-
+最終的なポッドアフィニティルールは下の画像のようになります。
 +
-Confirm this is true and click *Save affinity rule*.
+これを確認し、*Save affinity rule（アフィニティルールの保存）* をクリックします。
 
 +
 image::exercise4/04-image-affinity05.png[title="Pod Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. Click *Apply rules*
-
+. *Apply rules（ルールの適用）* をクリックします。
 +
-. Now let's take a look at the Pod Affinity rule on *pod-affinity-vm*.
-
+. それでは、*pod-affinity-vm* のポッドアフィニティルールを確認してみましょう。
 +
-You can view this information through the GUI by inspecting the *pod-affinity-vm* *YAML*, or using the CLI.
+この情報は、GUIで *pod-affinity-vm* の *YAML* を検査するか、CLIを使用して確認できます。
 
 +
 [source,text,role=execute]
@@ -483,13 +442,13 @@ oc get vm pod-affinity-vm -n affinity -o jsonpath='{.spec.template.spec.affinity
 ----
 
 +
+[source,console]
 .Output
 ----
 {"podAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchExpressions":[{"key":"app","operator":"In","values":["fedora"]}]},"topologyKey":"kubernetes.io/hostname"}]}}
 ----
-
 +
-. Check where the *pod-affinity-vm* and *node-affinity-vm* are running by looking at OpenShift Console or using the OpenShift CLI.
+. OpenShiftコンソールを確認するか、OpenShift CLIを使用して、*pod-affinity-vm* と *node-affinity-vm* がどこで実行されているかを確認します。
 
 +
 [source,text,role=execute]
@@ -498,21 +457,21 @@ oc get vmi pod-affinity-vm node-affinity-vm -n affinity
 ----
 
 +
+[source,console]
 .Output
 ----
 NAME               AGE    PHASE     IP             NODENAME                        READY
 pod-affinity-vm    8m2s   Running   10.232.0.218   control-plane-cluster-dvddt-1   True
 node-affinity-vm   11m    Running   10.233.0.35    worker-cluster-dvddt-1          True
 ----
++
+. 前のラボで述べたように、外部からの力によってVMが移動または再起動されない限り、新しいアフィニティルールは効果を発揮しません。
++
+手動で変更を適用するには、VMをライブマイグレーションするか再起動します。自動的に強制適用させるには、*Descheduler* に *AffinityAndTaints* プロファイルを構成します。
 
 +
-. As we noted in the last lab, without an external force to move or restart the VM, new Affinity rules do not take effect.
+. *pod-affinity-vm* VMを再起動します。
 
-+
-To apply the changes manually, you can live migrate or restart the VM. For automatic enforcement, you can configure the *Descheduler* with the *AffinityAndTaints* profile.
-
-+
-. Restart the *pod-affinity-vm* VM.
 
 +
 [.wrap,console,role=execute]
@@ -527,10 +486,9 @@ VM pod-affinity-vm was scheduled to restart
 ----
 
 +
-. Once the VM restarts, the pod affinity will be in effect.
-
+. VMが再起動すると、ポッドアフィニティが有効になります。
 +
-You can validate this in the GUI by navigating to the *pod-affinity-vm* and *node-affinity-vm*, and looking at the *Node* name in the *General* box on the right hand side of the *VirtualMachine details* page or using the OCP CLI.
+これは、GUIで *pod-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
@@ -539,6 +497,7 @@ oc get vmi pod-affinity-vm node-affinity-vm -n affinity
 ----
 
 +
+[source,console]
 .Output
 ----
 NAME               AGE    PHASE     IP            NODENAME                 READY
@@ -547,31 +506,28 @@ node-affinity-vm   35m    Running   10.233.0.35   worker-cluster-dvddt-1   True
 ----
 
 +
-. You will now see the *pod-affinity-vm* running on the same node *node-affinity-vm* because of the pod affinity rule.
-
+. ポッドアフィニティルールによって、*pod-affinity-vm* が *node-affinity-vm* と同じノードで実行されていることが確認できます。
 
 [#podantiaffinity]
 == Pod Anti-Affinity
 
-Pod Anti-Affinity is a crucial feature in achieving cross-cluster High Availability (HA) for your workloads. It work by instructing the scheduler to prevent the co-location of related VMs on the same node.
+ポッドアンチアフィニティ（Pod Anti-Affinity）は、ワークロードに対してクラスターをまたぐ高可用性（HA）を実現するための極めて重要な機能です。これは、関連するVMを同じノードに共存させないようスケジューラーに指示することで機能します。
 
-The primary benefit is to enhance application resilience. It ensues that VMs belonging to the same service (such as a database cluster) are distributed across different nodes. The failure of a single node will not cause an outage for the entire service.
+主なメリットは、アプリケーションの復元力（レジリエンス）を高める点にあります。同じサービス（データベースクラスターなど）に属するVMが異なるノードに分散して配置されるようになります。これにより、単一のノードに障害が発生しても、サービス全体の停止を引き起こすことはなくなります。
 
-This lab will demonstrate the setup and usage of Pod Anti-Affinity.
+このラボでは、ポッドアンチアフィニティの設定と使用方法を実証します。
 
 [#podantiaffinityinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
-
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
-. To begin, we are going to leverage our existing *node-affinity-vm* and the *app: fedora* label from the previous lab. This will serve as 1 of the 2 VMs we use to demonstrate Anti-Affinity.
 
+. まず、前のラボの既存の *node-affinity-vm* と *app: fedora* ラベルを活用します。これが、アンチアフィニティを実証するために使用する2つのVMのうちの1つとして機能します。
 +
-. Next, we are going to configure the *pod-anti-affinity-vm*.
-
+. 次に、*pod-anti-affinity-vm* の構成を行います。
 +
-.. Begin by starting *pod-anti-affinity-vm* Virtual Machine
+.. まず、*pod-anti-affinity-vm* 仮想マシンを起動します。
 
 +
 [.wrap,console,role=execute]
@@ -586,7 +542,7 @@ VM pod-anti-affinity-vm was scheduled to start
 ----
 
 +
-. Verify the *VirtualMachineInstance* is running and see what node it is running on. If the *VirtualMachineInstance* is still in the scheduling phase, please execute the command again.
+. *VirtualMachineInstance* が実行中であることを確認し、どのノードで動作しているかを確認します。*VirtualMachineInstance* がまだスケジュールフェーズにある場合は、コマンドを再実行してください。
 +
 [.wrap,console,role=execute]
 ----
@@ -594,6 +550,7 @@ oc get vmi pod-anti-affinity-vm -n affinity
 ----
 
 +
+[source,console]
 .Output
 ----
 NAME                   AGE   PHASE     IP            NODENAME                 READY
@@ -601,75 +558,63 @@ pod-anti-affinity-vm   1m    Running   10.233.0.44   worker-cluster-dvddt-1   Tr
 ----
 
 +
-. Once the VM has started, using the OpenShift Console, from the left side panel, navigate to *Virtualization → VirtualMachines*
-
+. VMが起動したら、OpenShiftコンソールを使用し、left side panelから *Virtualization（仮想化） → VirtualMachines（仮想マシン）* に移動します。
 +
-Under *All projects*, select the *affinity* namespace and click on the Virtual Machine named *pod-anti-affinity-vm* and click on the *Configuration* tab.
-
+*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-anti-affinity-vm* という名前の仮想マシンをクリックして *Configuration（構成）* タブをクリックします。
 +
-From the *Configuration* tab, select *Scheduling* and click the *blue pencil* icon under *Affinity rules* to add a new one.
+*Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 
 +
 image::exercise4/04-image-affinity06.png[title="Add Pod Anti-Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. From the new window, click *Add affinity rule*.
-
+. 表示された新しいウィンドウから、*Add affinity rule（アフィニティルールの追加）* をクリックします。
 +
-. Change the *type* to *Workload (pod) Anti-Affinity*
-
+. *Type（タイプ）* を *Workload (pod) Anti-Affinity（ワークロード（ポッド）アンチアフィニティ）* に変更します。
 +
-. Keep the *Condition* set to *Required during scheduling* and leave the *Topology key* at the default value.
-
+. *Condition（条件）* は *Required during scheduling（スケジューリング時に必須）* のままにし、*Topology key（トポロジーキー）* もデフォルト値のままにします。
 +
-. Click *Add expression* under *Workload labels*
-
+. *Workload labels（ワークロードラベル）* の下にある *Add expression（式の追加）* をクリックします。
 +
-Set the *Key* field to `app` and the *Values* field to `fedora` and click *Add*.
-
+*Key（キー）* フィールドに `app`、*Values（値）* フィールドに `fedora` を設定し、*Add（追加）* をクリックします。
 +
-This is the same label applied to the *node-affinity-vm*.
-
+これは、*node-affinity-vm* に適用されているものと同じラベルです。
 +
-Your Final Pod Affinity rule will look like the picture below.
-
+最終的なポッドアフィニティルールは下の画像のようになります。
 +
-Confirm this is true and click *Save affinity rule*.
-
+これを確認し、*Save affinity rule（アフィニティルールの保存）* をクリックします。
 +
 image::exercise4/04-image-affinity07.png[title="Add Pod Anti-Affinity Rule", link=self, window=blank, width=100%]
 
 +
-. Click *Apply Rules*
-
+. *Apply Rules（ルールの適用）* をクリックします。
 +
-. Now let's take a look at the Pod Affinity rule on *pod-anti-affinity-vm*.
-
+. それでは、*pod-anti-affinity-vm* のポッドアフィニティルールを確認してみましょう。
 +
-You can view this information through the GUI by inspecting the *pod-anti-affinity-vm* *YAML*, or using the CLI.
+この情報は、GUIで *pod-anti-affinity-vm* の *YAML* を検査するか、CLIを使用して確認できます。
 
 +
 [source,text,role=execute]
 ----
 oc get vm pod-anti-affinity-vm -n affinity -o jsonpath='{.spec.template.spec.affinity}{"\n"}'
 ----
-
 +
+[source,console]
 .Output
 ----
 {"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchExpressions":[{"key":"app","operator":"In","values":["fedora"]}]},"topologyKey":"kubernetes.io/hostname"}]}}
 ----
 
 +
-. Check where the *pod-anti-affinity-vm* and *node-affinity-vm* are running by looking at OpenShift Console or using the OpenShift CLI.
+. OpenShiftコンソールを確認するか、OpenShift CLIを使用して、*pod-anti-affinity-vm* と *node-affinity-vm* がどこで実行されているかを確認します。
 
 +
 [source,text,role=execute]
 ----
 oc get vmi pod-anti-affinity-vm node-affinity-vm -n affinity
 ----
-
 +
+[source,console]
 .Output
 ----
 NAME                   AGE   PHASE     IP            NODENAME                 READY
@@ -680,16 +625,15 @@ node-affinity-vm        5m   Running   10.233.0.46   worker-cluster-dvddt-1   Tr
 +
 [NOTE]
 ====
-It's possible your *pod-anti-affinity-vm* and *node-affinity-vm* are already on different nodes because the cluster is lightly loaded. Even so, you can restart the pods endlessly and they never will end up on the same node.
+クラスターの負荷が低いため、*pod-anti-affinity-vm* と *node-affinity-vm* がすでに異なるノードに配置されている可能性があります。そうだとしても、ポッドを何度再起動しても、それらが同じノードになることは決してありません。
 ====
 
-. As we noted in the last lab, without an external force to move or restart the VM, new Affinity rules do not take effect.
+. 先ほど述べたように、外部からの力によってVMが移動または再起動されない限り、新しいアフィニティルールは効果を発揮しません。
++
+手動で変更を適用するには、VMをライブマイグレーションするか再起動します。自動的に強制適用させるには、*Descheduler* に *AffinityAndTaints* プロファイルを構成します。
 
 +
-To apply the changes manually, you can live migrate or restart the VM. For automatic enforcement, you can configure the *Descheduler* with the *AffinityAndTaints* profile.
-
-+
-. Restart the *pod-anti-affinity-vm* VM.
+. *pod-anti-affinity-vm* VMを再起動します。
 
 +
 [.wrap,console,role=execute]
@@ -704,10 +648,9 @@ VM pod-anti-affinity-vm was scheduled to restart
 ----
 
 +
-. Once the VM restarts, the pod anti-affinity will be in effect.
-
+. VMが再起動すると、ポッドアンチアフィニティが有効になります。
 +
-You can validate this in the GUI by navigating to the *pod-anti-affinity-vm* and *node-affinity-vm*, and looking at the *Node* name in the *General* box on the right hand side of the *VirtualMachine details* page or using the OCP CLI.
+これは、GUIで *pod-anti-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
@@ -716,6 +659,7 @@ oc get vmi pod-anti-affinity-vm node-affinity-vm -n affinity
 ----
 
 +
+[source,console]
 .Output
 ----
 NAME                   AGE   PHASE     IP            NODENAME                        READY
@@ -724,11 +668,12 @@ node-affinity-vm       58m   Running   10.233.0.35   worker-cluster-dvddt-1     
 ----
 
 +
-. You will now see the *pod-anti-affinity-vm* running on a different node from *node-affinity-vm* because of the pod anti-affinity rule.
+. ポッドアンチアフィニティルールによって、*pod-anti-affinity-vm* が *node-affinity-vm* とは異なるノードで実行されていることが確認できます。
 
 [IMPORTANT]
 ====
-Stop the *node-affinity-vm*, *pod-affinity-vm* and *pod-anti-affinity-vm* VMs using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して、*node-affinity-vm*、*pod-affinity-vm*、および *pod-anti-affinity-vm* VM を停止してください。
+
 
 [,shell,role="execute wrap",subs="attributes"]
 ----
