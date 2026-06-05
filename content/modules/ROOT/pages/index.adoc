@@ -1,6 +1,6 @@
 = {lab_name}
 
-== OpenShift Virtualizationロゼッタストーンラボへようこそ
+== OpenShift Virtualization ロゼッタストーンラボへようこそ
 
 OpenShift Virtualizationはあらゆる場所で利用されており、当社の顧客アカウント全体に大きな影響を与えています。
 
@@ -84,7 +84,7 @@ Partner ecosystem
 endif::vmware[]
 
 [#labenvironment]
-== ラボ観葉
+== ラボ環境
 
 右側のターミナルウィンドウは、既に踏み台ホスト経由でラボ環境に *{ssh_user}* としてログインしています。
 
