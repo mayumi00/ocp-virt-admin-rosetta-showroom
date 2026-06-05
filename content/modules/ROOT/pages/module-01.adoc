@@ -1,79 +1,79 @@
+
 = Live Migration of Workloads
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
-In VMware this is called VMotion.
+VMwareでは、これは「vMotion」と呼ばれます。
 
-VMware uses the concept of Datastores.
-VMware Datastores can be thought of as LUNs, which may or may not belong to a Datastore Cluster.
+VMwareは「データストア（Datastores）」の概念を使用します。
+VMwareのデータストアはLUN（Logical Unit Number）と考えることができ、データストアクラスターに属している場合とそうでない場合があります。
 
 .Differences
- * Different paradigm.
- * PV PVC provides it to a VM when it needs it, getting it from a StorageClass.
- * Datastore -> Cluster structure
+
+* パラダイムが異なります。
+* PV（PersistentVolume）や PVC（PersistentVolumeClaim）は、VMが必要としたときに StorageClass から取得して提供します。
+* データストア -> クラスターという構造です。
 
 .Mapping
- * Datastore Cluster (or VM attached directly to Datastore) = StorageClass defines volume, claims against it.
 
-Datastore Clusters are a collection of Datastores and use SDRS for placement of the .VMDK files on specific Datastores.
-Storage Distributed Resource Scheduler (SDRS) can only be applied to Datastore Clusters, and is used to automate this process.
+* データストアクラスター（またはデータストアに直接接続されたVM） = StorageClass がボリュームを定義し、それに対して要求（Claims）を行います。
+
+データストアクラスターはデータストアの集合体であり、特定のデータストアへの `.VMDK` ファイルの配置に SDRS を使用します。
+Storage Distributed Resource Scheduler (SDRS) はデータストアクラスターにのみ適用可能で、このプロセスを自動化するために使用されます。
 ****
 endif::[]
 
-Migrating workloads between compute nodes and storage types is a crucial feature of any modern hypervisor. OpenShift Virtualization allows the simple and easy process of migrating your virtual machine compute and storage from one place to another.
+コンピュートノード間やストレージタイプ間でワークロードを移行することは、現代のあらゆるハイパーバイザーにおいて極めて重要な機能です。OpenShift Virtualizationでは、仮想マシンのコンピュートとストレージをある場所から別の場所へ、シンプルかつ簡単に移行できます。
 
-In this module, you will perform three migration tasks:
+このモジュールでは、3つのマイグレーションタスクを実行します。
 
-* <<computerand,Live migration of a virtual machine from one node to another random node>>
-* <<compute,Live migration of a virtual machine from one node to another specific node>>
-* <<storage,Live migration of virtual machine storage from one StorageClass to another.>>
+* <<computerand,任意のノードへの仮想マシンのライブマイグレーション>>
+* <<compute,特定のノードへの仮想マシンのライブマイグレーション>>
+* <<storage,ある StorageClass から別の StorageClass への仮想マシンストレージのライブマイグレーション>>
 
 include::lab-access.adoc[]
 
 [#computerand]
 == Compute Migration to a random node
-During maintenance or troubleshooting, you might need to migrate a VM to a different node. Live migration is the process of moving a running Virtual Machine Instance (VMI) to a different node without disruption.
+メンテナンスやトラブルシューティングの際、VMを別のノードに移行する必要が生じることがあります。ライブマイグレーションとは、実行中の仮想マシンインスタンス（VMI）を中断することなく、別のノードに移動するプロセスのことです。
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
 [NOTE]
 ====
-This feature is similar to VMware's Compute vMotion feature, and Distributed Resource Scheduler (DRS) for VM placement.
+この機能は、VMwareの「Compute vMotion」機能、およびVM配置のための「Distributed Resource Scheduler (DRS)」に類似しています。
 ====
 ****
 endif::[]
 
-In this lab, you will be performing a live migration of Virtual Machine from one compute node to another. To do this, you will access a running VM, determine its current node, and then migrate it to another node.
+このラボでは、仮想マシンのコンピュートノード間でのライブマイグレーションを実行します。これを行うには、実行中のVMにアクセスし、現在のノードを確認した上で、別のノードに移行します。
 
 [#computerandrequirements]
 === Requirements
 
-* The underlying PVC must use *ReadWriteMany (RWX)* access mode
-
-* The pod network must not be configured with the bridge binding type.
-
-* Ports *49152 and 49153* must be available in the VM's virt-launcher pod; live migration fails if these ports are specified in a masquerade network interface.
-
-* CPU model must match on the source and destination node - you can not live migrate from Intel to AMD
+* 基盤となる PVC が *ReadWriteMany (RWX)* アクセスモードを使用していること
+* ポッドネットワークが bridge バインディングタイプで構成されていないこと
+* ポート *49152 および 49153* がVMの virt-launcher ポッドで利用可能であること（これらのポートがマスカレードネットワークインターフェースで指定されている場合、ライブマイグレーションは失敗します）
+* ソースノードとデスティネーションノードで CPU モデルが一致していること - Intel から AMD へのライブマイグレーションは実行できません
 
 [#computerandinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to the OpenShift Console as the *admin* user>> from your *web browser* and continue to the next step.
+. *Webブラウザ* から <<labaccess,admin ユーザーとして OpenShift コンソールにログイン>>していることを確認し、次のステップに進みます。
 +
 
-. From the left side panel, navigate to *Virtualization -> Virtual Machines*. Under *All projects*, select the *live-migrate* namespace and click on the Virtual Machine named *live-migrate-vm1*.
+. 左側のサイドパネルから、*Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。*All projects（すべてのプロジェクト）* で *live-migrate* ネームスペースを選択し、*live-migrate-vm1* という名前の仮想マシンをクリックします。
 +
 
-. The Virtual Machine is currently powered off. Click the blue *Play* button to *Start* the Virtual Machine.
+. 仮想マシンは現在停止しています。青い *Play（起動）* ボタンをクリックして、仮想マシンを *Start（開始）* します。
 +
 
 image::exercise1/01-vm-start-001.png[title="Start the Virtual Machine", link=self, window=blank, width=100%]
 +
 
-. The Virtual Machine will schedule, start and move into the *Running* state as seen below.
+. 仮想マシンのスケジュールが組まれ、起動し、以下のように *Running（実行中）* 状態になります。
 +
 
 image::exercise1/01-vm-start-002.png[title="Running Virtual Machine", link=self, window=blank, width=100%]
@@ -81,114 +81,115 @@ image::exercise1/01-vm-start-002.png[title="Running Virtual Machine", link=self,
 
 [NOTE]
 ====
-To see the node the Virtual Machine is currently running on, look at the *General* box on the right hand side of the *VirtualMachine details* page for the *Node* name. In the example, the node is *worker-cluster-m2ssq-1*.
+仮想マシンが現在実行されているノードを確認するには、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認します。この例では、ノードは *worker-cluster-m2ssq-1* です。
 ====
 +
-
 image::exercise1/01-image-compute-002.png[title="Virtual machine details", link=self, window=blank, width=100%]
 +
 
-. To migrate the Virtual Machine to another node, click on the *Actions* menu, hover over *Migration*, and then click *Compute*.
+. 仮想マシンを別のノードに移行するには、*Actions（アクション）* メメニューをクリックし、*Migration（マイグレーション）* にカーソルを合わせてから、*Compute（コンピュート）* をクリックします。
 +
 
 image::exercise1/01-image-compute-003.png[title="Initiate migration", link=self, window=blank, width=100%]
 +
 
-. Leave the default selection, which is to *Automatically* migrate to any *Node*.
+. デフォルトの選択肢である、任意の *Node（ノード）* へ *Automatically（自動的）* に移行する設定のままにします。
 
 +
 image::exercise1/01-image-compute-004.png[title="Configure migration", link=self, window=blank, width=100%]
 
-. Click *Migrate Virtual Machine*
 +
-. Wait a few moments and the Virtual Machine status will change from *Running* to *Migrating*.
+. *Migrate Virtual Machine（仮想マシンのマイグレーション）* をクリックします。
++
+. しばらく待つと、仮想マシンのステータスが *Running（実行中）* から *Migrating（マイグレーション中）* に変わります。
 
 +
 image::exercise1/01-image-compute-006.png[title="VM is migrating", link=self, window=blank, width=100%]
 
-. A few moments after that, the Virtual Machine will return to a *Running* state.
+. その後さらに数秒すると、仮想マシンは *Running（実行中）* 状態に戻ります。
 +
-
 [NOTE]
 ====
-Looking back at the *General* box on the right hand side of the *VirtualMachine details* page, you can see that the node has changed.
+*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスをもう一度見ると、ノードが変更されていることが確認できます。
 ====
-
 +
 image::exercise1/01-image-compute-007.png[title="VM is running", link=self, window=blank, width=100%]
 
-. The VM has migrated to a new worker node while still running.
+
+. VMは実行状態を維持したまま、新しいワーカーノードに移行されました。
 
 [#compute]
 == Compute Migration to a specific node
 
-During maintenance or troubleshooting, you might need to migrate a Virtual Machine to a *specific* node in the cluster.
+メンテナンスやトラブルシューティングの際、仮想マシンをクラスター内の *特定（specific）* のノードに移行する必要がある場合があります。
 
 [NOTE]
 ====
-The requirements for this type of migration are the same as the previous lesson.
+このタイプのマイグレーションの要件は、前のレッスンと同じです。
 ====
 
 [#computeinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to the OpenShift Console as the *admin* user>> from your *web browser* and continue to the next step.
+. *Webブラウザ* から <<labaccess,admin ユーザーとして OpenShift コンソールにログイン>>していることを確認し、次のステップに進みます。
 
-+
-. From the left side panel, navigate to *Virtualization -> Virtual Machines*.
+. 左側のサイドパネルから、*Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。
 
-+
-. Under *All projects*, select the *live-migrate* namespace and click on the Virtual Machine named *live-migrate-vm1*.
+. *All projects（すべてのプロジェクト）* で *live-migrate* ネームスペースを選択し、*live-migrate-vm1* という名前の仮想マシンをクリックします。
 
-+
-. The Virtual Machine should already be *Running* from the last lesson. If it is not, click the blue *Play* button to *Start* the Virtual Machine and wait for it to enter the *Running* state.
-
+. 仮想マシンは前のレッスンから引き続き *Running（実行中）* 状態になっているはずです。もしそうでない場合は、青い *Play（起動）* ボタンをクリックして仮想マシンを *Start（開始）* し、*Running（実行中）* 状態になるまで待ちます。
 +
 image::exercise1/01-image-compute-002.png[title="Virtual machine details", link=self, window=blank, width=100%]
 
 +
-. To migrate the Virtual Machine to another node, click on the *Actions* menu, hover over *Migration*, and then click *Compute*.
+. 仮想マシンを別のノードに移行するには、*Actions（アクション）* メメニューをクリックし、*Migration（マイグレーション）* にカーソルを合わせてから、*Compute（コンピュート）* をクリックします。
 
 +
 image::exercise1/01-image-compute-003.png[title="Initiate migration", link=self, window=blank, width=100%]
 
-. You will be presented with the *Select the target Node to migrate your VirtualMachine to* window.
++
+. *Select the target Node to migrate your VirtualMachine to（仮想マシンの移行先ターゲットノードの選択）* ウィンドウが表示されます。
 
 +
 image::exercise1/01-image-compute-004.png[title="Configure migration", link=self, window=blank, width=100%]
 
-. Select *Specific Node*, which will then display the list of available nodes. Select the check the box next to a worker node and click *Migrate Virtual Machine*
++
+. *Specific Node（特定のノード）* を選択すると、利用可能なノードのリストが表示されます。いずれかのワーカーノードの横にあるチェックボックスを選択し、*Migrate Virtual Machine（仮想マシンのマイグレーション）* をクリックします。
 
 +
 image::exercise1/01-image-compute-005.png[title="Select worker node", link=self, window=blank, width=100%]
 
-. You will see the Virtual Machine status changes from *Running* to *Migrating*.
++
+. 仮想マシンのステータスが *Running（実行中）* から *Migrating（マイグレーション中）* に変わるのが確認できます。
 
 +
 image::exercise1/01-image-compute-006.png[title="VM is migrating", link=self, window=blank, width=100%]
 
-. A few moments after that, the Virtual Machine status will return to a *Running* state.
++
+. その後しばらくすると、仮想マシンのステータスは *Running（実行中）* 状態に戻ります。
 
 +
 [NOTE]
 ====
-Looking back at the *General* box on the right hand side of the *VirtualMachine details* page, you can see that the node has changed, specifically to the one you selected from the list.
+*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスをもう一度確認すると、ノードが変更されており、特にリストから選択したノードに変わっていることがわかります。
 ====
 
++
 image::exercise1/01-image-compute-007.png[title="VM is running", link=self, window=blank, width=100%]
 
 [#storage]
 == Storage Migration
-Storage environments often have their own lifecycles and performance profiles, so it is important to be able to move Virtual Machines between storage devices for lifecycle and performance management. OpenShift Virtualization allows the migration of PVCs from one StorageClass to another while the virtual machine is running.
+ストレージ環境には独自のライフサイクルやパフォーマンスプロファイルがあることが多いため、ライフサイクル管理やパフォーマンス管理のために仮想マシンをストレージデバイス間で移動できることが重要です。OpenShift Virtualizationでは、仮想マシンを実行したまま、PVCをある StorageClass から別の StorageClass へ移行することができます。
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
 [NOTE]
 ====
-This feature is similar to VMware's Storage vMotion feature.
 
-This also includes the Storage Distributed Resource Scheduler (SDRS) for disk placement.
+この機能は、VMwareの「Storage vMotion」機能に類似しています。
+
+これには、ディスク配置のための「Storage Distributed Resource Scheduler (SDRS)」も含まれます。
 ====
 ****
 endif::[]
@@ -196,106 +197,98 @@ endif::[]
 [#storagerequirements]
 === Requirements
 
-* The *Migration Toolkit for Containers (MTC)* Operator must be installed for storage class migrations
+* ストレージクラスの移行には、*Migration Toolkit for Containers (MTC)* オペレーターがインストールされている必要があります。
 
 [NOTE]
 ====
-MTC has been deprecated and engineering is working on removing the *MTC* requirement for storage class migrations.
+MTC は非推奨（deprecated）となっており、エンジニアリングチームはストレージクラスの移行における *MTC* の要件を削除する作業を進めています。
 
-This feature is targeting *4.21* and engineering plans to backport it to *4.20.z*. 
+この機能は *4.21* をターゲットにしており、エンジニアリングチームは *4.20.z* へのバックポートを計画しています。
 
-You can follow https://issues.redhat.com/browse/VIRTSTRAT-97[VM Storage Migration] for more information.
+詳細については、 https://issues.redhat.com/browse/VIRTSTRAT-97[VM Storage Migration]をご確認ください。
 ====
 
 [#storageinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to the OpenShift Console as the *admin* user>> and continue to the next step.
+. *admin* ユーザーとして OpenShift コンソールにログインしていることを確認し、次のステップに進みます。
 
 +
-. From the left side panel, navigate to *Virtualization -> Virtual Machines*.
+. 左側のサイドパネルから、*Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。
 
 +
-Under *All projects*, select the *live-migrate* namespace and click on the Virtual Machine named *live-migrate-vm1*.
-
+*All projects（すべてのプロジェクト）* で *live-migrate* ネームスペースを選択し、*live-migrate-vm1* という名前の仮想マシンをクリックします。
 +
 image::exercise1/01-image-storage-001.png[title="Virtual machine details", link=self, window=blank, width=100%]
 
-. Click on the *Configuration* tab and select *Storage*. You can see that the Virtual Machine currently has a single 30GB bootable disk that is using the *Storage class* called *ocs-external-storagecluster-ceph-rbd*.
++
+. *Configuration（構成）* タブをクリックし、*Storage（ストレージ）* を選択します。仮想マシンには現在、*ocs-external-storagecluster-ceph-rbd* という名前の *Storage class（ストレージクラス）* を使用している 30GB のブート可能ディスクが1つだけ存在していることが確認できます。
 
 +
 image::exercise1/01-image-storage-002.png[title="View storage details", link=self, window=blank, width=100%]
-
-. Click on the *Console* tab. If necessary, click the blue *Connect* button.
++
+. *Console（コンソール）* タブをクリックします。必要に応じて、青い *Connect（接続）* ボタンをクリックします。
 
 +
-Login to the Virtual Machine using *Copy to clipboard* and *Paste to console* with the *User name* and *Password* credentials from above the console window.
-
+コンソールウィンドウの上部に表示されている *User name（ユーザー名）* と *Password（パスワード）* の資格情報を使用し、*Copy to clipboard（クリップボードにコピー）* と *Paste to console（コンソールに貼り付け）* を使って仮想マシンにログインします。
 +
-. Run a command, such as `top` or `ping`, that will continue running as we perform the remainder of this exercise.
-
+. この演習の残りの作業を実行している間も動き続けるように、`top` や `ping` などのコマンドを実行しておきます。
 +
 image::exercise1/01-image-storage-003.png[title="Run command on console", link=self, window=blank, width=100%]
-
-. Click on the *Actions* menu, hover over *Migration* and click on *Storage*.
-
++
+. *Actions（アクション）* メニューをクリックし、*Migration（マイグレーション）* にカーソルを合わせてから、*Storage（ストレージ）* をクリックします。
 +
 image::exercise1/01-image-storage-004.png[title="Initiate storage migration", link=self, window=blank, width=100%]
-
-. In the *Migrate VirtualMachine storage* window, review the options, keep the defaults and click *Next*.
++
+. *Migrate VirtualMachine storage（仮想マシンストレージのマイグレーション）* ウィンドウでオプションを確認し、デフォルトのまま *Next（次へ）* をクリックします。
 +
 image::exercise1/01-image-storage-005.png[title="Migration details", link=self, window=blank, width=100%]
-
-. For the *Destination StorageClass*, select the new *StorageClass* called *custom-storage-class* and click *Next*.
-
++
+. *Destination StorageClass（移行先ストレージクラス）* として、*custom-storage-class* という名前の新しい *StorageClass* を選択し、*Next（次へ）* をクリックします。
 +
 image::exercise1/01-image-storage-006.png[title="Select destination StorageClass", link=self, window=blank, width=100%]
-
-. Review the final storage migration configuration and click *Migrate VirtualMachine storage*.
-
++
+. 最終的なストレージマイグレーションの構成を確認し、*Migrate VirtualMachine storage（仮想マシンストレージのマイグレーション）* をクリックします。
 +
 image::exercise1/01-image-storage-007.png[title="Review migration details", link=self, window=blank, width=100%]
 
-. The next window will show you the status of the storage migration. It is safe to close the window by clicking the *X* in the top corner, or you may click on the link to *View storage migrations*. Do not click the *Stop* button.
+. 次のウィンドウにストレージマイグレーションのステータスが表示されます。右上隅の *X* をクリックしてこのウィンドウを閉じても安全です。または、*View storage migrations（ストレージマイグレーションの表示）* のリンクをクリックしても構いません。*Stop（停止）* ボタンはクリックしないでください。
 +
 image::exercise1/01-image-storage-008.png[title="Migration has started", link=self, window=blank, width=100%]
 
-. To view the storage migration status, navigate to *Migration for Virtualization* from the left side panel and click *Storage migrations*. The migration plan will start in the *Pending* state, move to *Running* and then to *Completed*.
+. ストレージマイグレーションのステータスを確認するには、左側のサイドパネルから *Migration for Virtualization（仮想化のマイグレーション）* に移動し、*Storage migrations（ストレージマイグレーション）* をクリックします。マイグレーションプランは *Pending（保留中）* 状態から始まり、*Running（実行中）* へ遷移し、最後に *Completed（完了）* になります。
 
 +
 [NOTE]
 ====
-It may take over a minute for the migration to start, and five or more minutes for the migration to complete in the lab environment.
+このラボ環境では、マイグレーションが開始されるまでに1分以上、完了するまでに5分以上かかる場合があります。
 ====
-
 +
 image::exercise1/01-image-storage-009.png[title="Migration is running", link=self, window=blank, width=100%]
 
-. Once the migration is *Complete*, from the left side panel, navigate back to *Virtualization -> Virtual Machines*.
+. マイグレーションが *Complete（完了）* したら、左側のサイドパネルから再度 *Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。
 
 +
-Under *All projects*, select the *live-migrate* namespace and click on the Virtual Machine named *live-migrate-vm1*.
-
+*All projects（すべてのプロジェクト）* で *live-migrate* ネームスペースを選択し、*live-migrate-vm1* という名前の仮想マシンをクリックします。
 +
-Click on the *Configuration* tab and select *Storage*. You can see that the name of the *Source* has changed and the *Storage class* is now *custom-storage-class*, which is what you selected for the storage migration.
-
+*Configuration（構成）* タブをクリックし、*Storage（ストレージ）* を選択します。*Source（ソース）* の名前が変更され、*Storage class（ストレージクラス）* がストレージマイグレーションで選択した *custom-storage-class* になっていることが確認できます。
 +
 image::exercise1/01-image-storage-010.png[title="VM has been migrated", link=self, window=blank, width=100%]
 
 +
-. Moving back to the *Console* tab, you will see that your ping is still running and was uninterrupted during the migration.
+. *Console（コンソール）* タブに戻ると、ping がまだ実行中であり、マイグレーション中も中断されなかったことが確認できます。
 
 +
 image::exercise1/01-image-storage-011.png[title="No interruption during storage migration", link=self, window=blank, width=100%]
 
 [IMPORTANT]
 ====
-Stop the *live-migrate-vm1* VM using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して *live-migrate-vm1* VM を停止してください。
 
 [,shell,role="execute wrap",subs="attributes"]
 ----
 virtctl stop live-migrate-vm1 -n live-migrate
 ----
 
-*VM live-migrate-vm1 was scheduled to stop*
+# *VM live-migrate-vm1 was scheduled to stop*
 ====
