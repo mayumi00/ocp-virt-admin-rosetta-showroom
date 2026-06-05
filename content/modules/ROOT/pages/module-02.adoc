@@ -1,52 +1,53 @@
-= Overcommit in OpenShift Virtualization
+
+= OpenShift Virtualization におけるオーバーコミット
 
 ifdef::vmware[]
 .VMware Rosetta Stone
 ****
-VMware admins typically interact with CPU and memory overcommit as part of a more collaborative relationship with Capacity Management teams, applying values *to each ESXi host* that are often provided to them by those teams or other 3rd party capacity management systems.
+VMwareの管理者は通常、キャパシティ管理チームと連携しながらCPUやメモリのオーバーコミットを操作します。具体的には、キャパシティ管理チームやサードパーティ製のキャパシティ管理システムから提供された値を *各ESXiホストに* 適用します。
 ****
 endif::[]
 
+*オーバーコミット（Overcommit）* は、割り当てられた仮想リソースがホスト上で利用可能な物理リソースを超えたときに発生します。仮想マシン（VM）が割り当てられた最大容量を同時にフルで使用することは滅多にないという事実を活用することで、オーバーコミットによりワークロードの収容密度を向上させることができます。
 
-*Overcommit* occurs when the allocated virtual resources exceed the physical resources available on the host. Overcommit allows users to enable higher workload density by leveraging the fact that Virtual Machines (VMs) rarely use their full allocated capacity simultaneously.
+このモジュールでは、2つのオーバーコミットタスクを実行します。
 
-In this module, you will perform two overcommit tasks:
-
-* <<cpu,Understand and Overcommit CPU on a Virtual Machine>>
-* <<memory,Understand, Enable and Overcommit Memory on a Virtual Machine>>
+* <<cpu,仮想マシンにおけるCPUオーバーコミットの理解と設定>>
+* <<memory,仮想マシンにおけるメモリオーバーコミットの理解、有効化、および設定>>
 
 include::lab-access.adoc[]
 
 [#cpu]
 == CPU Overcommit
 
-In OpenShift Virtualization, compute resources assigned to Virtual Machines (VMs) are backed by either *Guaranteed CPUs* or *time-sliced CPU shares*.
+OpenShift Virtualizationにおいて、仮想マシン（VM）に割り当てられるコンピュートリソースは、*Guaranteed CPU（保証型CPU）* または *タイムスライス型CPUシェア* のいずれかによって支えられています。
 
-*Guaranteed CPUs*, also known as CPU reservations, dedicate CPU cores or threads to a specific workload, making them unavailable to any other workload. Assigning guaranteed CPUs to a VM ensures sole access to a reserved physical CPU. You enable dedicated resources for VMs to use guaranteed CPUs.
+*Guaranteed CPU* は、CPUリザベーションとも呼ばれ、特定のワークロードにCPUコアまたはスレッドを専用に割り当て、他のワークロードが使用できないようにします。VMにGuaranteed CPUを割り当てると、予約された物理CPUへの排他的なアクセスが保証されます。VMでGuaranteed CPUを使用するには、専用リソース（Dedicated Resources）を有効にします。
 
-*Time-sliced CPUs* dedicate a slice of time on a shared physical CPU to each workload. You can specify the slice size during VM creation or when the VM is offline. By default, each vCPU receives 100 milliseconds (1/10 of a second) of physical CPU time.
+*タイムスライス型CPU* は、共有された物理CPU上の時間の断片（スライス）を各ワークロードに割り当てます。このスライスのサイズは、VMの作成時またはVMのオフライン時に指定できます。デフォルトでは、各vCPUは物理CPU時間の100ミリ秒（1/10秒）を受け取ります。
 
-With time-sliced CPUs, the Linux kernel's *Completely Fair Scheduler (CFS)* manages how VMs share physical CPU cores. CFS rotates VMs through available cores, giving each VM a proportional slice of CPU time based on its configured CPU requests.
+タイムスライス型CPUを使用する場合、Linuxカーネルの *Completely Fair Scheduler (CFS)* が、VM間で物理CPUコアをどのように共有するかを管理します。CFSは利用可能なコア間でVMをローテーションさせ、構成されたCPU要求（Requests）に基づいて、各VMに比例したCPU時間スライスを割り当てます。
 
-By default OpenShift Virtualization has a 10:1 overcommit ratio. To achieve CPU overcommit, each VM’s *virt-launcher* pod will define _100m_ of CPU requests or _1/10th_ of a CPU from a Kubernetes resource and scheduling perspective, per vCPU requested by the VM.
+デフォルトで、OpenShift Virtualizationは10:1のオーバーコミット比率に設定されています。CPUオーバーコミットを実現するため、VMが要求するvCPUごとに、Kubernetesのリソースおよびスケジューリングの観点から、各VMの *virt-launcher* ポッドは *100m*（CPUの1/10）のCPU要求（Requests）を定義します。
 
-The default _10:1_ overcommit ratio can be configured to the desired overcommit level by changing the *vmiCPUAllocationRatio* on the *hyperconverged* Custom Resource. Changing this ratio will influence the CPU requests for each vCPU that is allocated by default, which enforces the maximum level of CPU overcommit through Kubernetes based request scheduling.
+デフォルトの *10:1* のオーバーコミット比率は、*hyperconverged* カスタムリソース（CR）の *vmiCPUAllocationRatio* を変更することで、希望するオーバーコミットレベルに構成できます。この比率を変更すると、デフォルトで割り当てられる各vCPUのCPU要求（Requests）に影響を与え、Kubernetesベースの要求スケジューリングを通じてCPUオーバーコミットの最大レベルが強制されます。
 
 [NOTE]
 ====
-Resource assignments are made at *virt-launcher* pod scheduling time, so any VMs will need to be live migrated stopped and restarted to change CPU allocation behavior after a ratio change.
+リソースの割り当ては *virt-launcher* ポッドのスケジューリング時に行われるため、比率の変更後にCPU割り当て動作を反映させるには、VMをライブマイグレーションするか、停止して再起動する必要があります。
 ====
+
 
 [#cpuinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
+. *Webブラウザ*からOpenShiftコンソールに、画面右側の*ターミナル*ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
++
+
+. CPUオーバーコミットを理解するには、まずワーカーノードで利用可能な物理CPUコアの数を特定する必要があります。
 
 +
-. To understand CPU overcommit, you must first identify how many physical CPU cores are available on your worker nodes.
-
-+
-.. List all worker nodes in your cluster:
+.. クラスター内のすべてのワーカーノードをリスト表示します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -64,7 +65,7 @@ worker-cluster-jlkcx-1          Ready    worker                        52m   v1.
 worker-cluster-jlkcx-2          Ready    worker                        52m   v1.33.6
 ----
 
-.. Show available CPU resources on a specific node:
+.. 特定のノードで利用可能なCPUリソースを表示します。
 
 +
 [,text,role="execute wrap",subs="attributes"]
@@ -77,20 +78,21 @@ oc describe node $(oc get nodes -o custom-columns=":metadata.name" --no-headers 
 .Output
 ----
 Capacity:
-  cpu:                            8
-  devices.kubevirt.io/kvm:        1k
-  devices.kubevirt.io/tun:        1k
-  devices.kubevirt.io/vhost-net:  1k
-  ephemeral-storage:              104266732Ki
-  hugepages-1Gi:                  0
-  hugepages-2Mi:                  0
-  memory:                         24600612Ki
-  pods:                           250
+cpu:                            8
+devices.kubevirt.io/kvm:        1k
+devices.kubevirt.io/tun:        1k
+devices.kubevirt.io/vhost-net:  1k
+ephemeral-storage:              104266732Ki
+hugepages-1Gi:                  0
+hugepages-2Mi:                  0
+memory:                         24600612Ki
+pods:                           250
 ----
 
 +
-The `cpu` value shows the number of physical CPU cores (or threads if hyper-threading is enabled) available on the node.
-.. Alternatively, check CPU allocatable resources (physical CPUs minus system reservations):
+`cpu` の値は、ノードで利用可能な物理CPUコア数（ハイパースレッディングが有効な場合はスレッド数）を示しています。
+
+.. あるいは、割り当て可能なCPUリソース（物理CPUからシステム予約分を差し引いたもの）を確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -106,17 +108,16 @@ oc get node $(oc get nodes -o custom-columns=":metadata.name" --no-headers | gre
 ----
 
 +
-.. Using the *OpenShift Console*, you can navigate to *Compute → Nodes* to view their key specifications.
+.. *OpenShiftコンソール*を使用して、*Compute（コンピュート） → Nodes（ノード）* に移動し、主要な仕様を確認することもできます。
 
 +
 image::exercise2/node-details.png[title="Confirm number of CPUs", link=self, window=blank, width=100%]
 
++
+. VMのvCPU割り当ての確認
 
 +
-. Viewing VM vCPU Allocations
-
-+
-.. List all running VMs and their vCPU counts:
+.. 実行中のすべてのVMとそのvCPU数をリスト表示します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -136,7 +137,7 @@ NAMESPACE     NAME              vCPUs   STATUS
 over-commit   overcommit-vm-1   16      Stopped
 ----
 
-.. For a specific VM, check the vCPU configuration:
+.. 特定のVMのvCPU構成を確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -152,14 +153,14 @@ oc get vm overcommit-vm-1 -n over-commit -o jsonpath='{.spec.template.spec.domai
 ----
 
 +
-.. Start the *overcommit-vm-1* Virtual Machine
+.. *overcommit-vm-1* 仮想マシンを起動します。
 
-... You can do this via the *Console*
+... *コンソール* から行うことができます。
 +
 image::exercise2/start-vm.png[title="Start VM", link=self, window=blank, width=100%]
 
 +
-... Or you can use *virtctl* to start it from your *Terminal* window
+... または、*ターミナル*ウィンドウから *virtctl* を使用して起動することもできます。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -175,7 +176,7 @@ VM overcommit-vm-1 was scheduled to start
 ----
 
 +
-.. View CPU requests and limits for the running VM:
+.. 実行中のVMのCPU要求（Requests）と制限（Limits）を表示します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -191,25 +192,22 @@ oc get vmi overcommit-vm-1 -n over-commit -o jsonpath='{.spec.domain.cpu}{"\n"}'
 ----
 
 +
-.. Using the *OpenShift Console*, navigate to *Virtualization → Virtual Machines*.
+.. *OpenShiftコンソール* を使用し、*Virtualization（仮想化） → Virtual Machines（仮想マシン）* に移動します。
 
 +
-Under *All projects*, select the *over-commit* namespace and select the *overcommit-vm-1* VM to view the *CPU/Memory* allocation.
+*All projects（すべてのプロジェクト）* の下で、*over-commit* ネームスペースを選択し、*overcommit-vm-1* VMを選択して *CPU/Memory* の割り当てを表示します。
 
 +
 image::exercise2/vm-details.png[title="Confirm number of CPUs", link=self, window=blank, width=100%]
 
+.. ゲストOS内部のCPU数を確認します。
 +
-.. Confirm the number of CPUs inside the guest
+*Console（コンソール）* タブをクリックします。必要に応じて、青い *Connect（接続）* ボタンをクリックします。
++
+コンソールウィンドウの上部に表示されている *User name（ユーザー名）* と *Password（パスワード）* の資格情報を使用し、*Copy to clipboard（クリップボードにコピー）* と *Paste to console（コンソールに貼り付け）* を使って仮想マシンにログインします。
 
 +
-Click on the *Console* tab. If necessary, click the blue *Connect* button.
-
-+
-Login to the Virtual Machine using *Copy to clipboard* and *Paste to console* with the *User name* and *Password* credentials from above the console window.
-
-+
-From the console, run the following command to verify the number of CPUs:
+コンソールから次のコマンドを実行して、CPUの数を確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -223,18 +221,15 @@ nproc
 ----
 32
 ----
-
-
 +
 image::exercise2/overcommit-nproc.png[title="Confirm number of CPUs", link=self, window=blank, width=100%]
 
 +
-. Calculating CPU Overcommit Ratio
-
+. CPUオーバーコミット比率の計算
 +
-To calculate the overcommit ratio on a specific node:
+特定のノードにおけるオーバーコミット比率を計算するには：
 
-.. Identify all VMs running on the node:
+.. そのノードで実行されているすべてのVMを特定します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -250,22 +245,23 @@ NAME              AGE   PHASE     IP             NODENAME                       
 overcommit-vm-1   75m   Running   10.232.0.121   control-plane-cluster-qc86c-1   True    True
 ----
 
-
-
 +
-.. Sum the vCPUs for all VMs on the node:
+.. そのノード上のすべてのVMのvCPUの合計を算出します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
 NODE=$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi overcommit-vm-1 -n over-commit -o json | jq -r '.status.nodeName'))
-oc get vmi -A -o json | \
-jq -r --arg NODE "$NODE" \
+oc get vmi -A -o json | 
+
+jq -r --arg NODE "$NODE" 
+
 '.items[] | select(.status.nodeName == $NODE) |
 {
-  name: .metadata.name,
-  total_vcpus: ((.spec.domain.cpu.sockets // 1) * (.spec.domain.cpu.cores // 1) * (.spec.domain.cpu.threads // 1))
-}' | \
+name: .metadata.name,
+total_vcpus: ((.spec.domain.cpu.sockets // 1) * (.spec.domain.cpu.cores // 1) * (.spec.domain.cpu.threads // 1))
+}' | 
+
 jq -s 'map(.total_vcpus) | add'
 ----
 
@@ -277,30 +273,28 @@ jq -s 'map(.total_vcpus) | add'
 ----
 
 +
-NOTE: You should at least see "32" but it may differ if more VMs are actually running on the same node.
-
+NOTE: 最低でも「32」が表示されるはずですが、同じノードで他のVMが実際に実行されている場合は異なる場合があります。
 
 +
-.. Calculate the overcommit ratio:
+.. オーバーコミット比率を計算します。
 
 +
 [,shell,role="wrap",subs="attributes"]
 ----
-Overcommit Ratio = Total vCPUs allocated / Physical CPU cores
+オーバーコミット比率 = 割り当てられた総vCPU数 / 物理CPUコア数
 
-Example:
-- Physical CPU cores: 8 (Available capacity from step 3.b)
-- Total vCPUs allocated: 32
-- Overcommit ratio: 32 / 8 = 4:1
+例：
+- 物理CPUコア数: 8 (ステップ 3.b の利用可能な容量)
+- 割り当てられた総vCPU数: 32
+- オーバーコミット比率: 32 / 8 = 4:1
 ----
 
 +
-. Understanding the Default 10:1 CPU Overcommit Ratio
-
+. デフォルトの 10:1 CPUオーバーコミット比率の理解
 +
-OpenShift Virtualization applies a default *10:1 CPU overcommit ratio* when you don't explicitly specify CPU requests. This means that if a VM has multiple vCPUs, the actual CPU request on the *virt-launcher* pod will be 1/10th of the total cpu requested by the VM.
+OpenShift Virtualizationは、CPU要求（Requests）を明示的に指定しない場合、デフォルトで *10:1 のCPUオーバーコミット比率* を適用します。これは、VMに複数のvCPUがある場合、*virt-launcher* ポッドの実際のCPU要求が、VMによって要求された総CPUの1/10になることを意味します。
 
-. Check *virt-launcher* pod CPU Requests
+. *virt-launcher* ポッドのCPU要求（Requests）の確認
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -319,7 +313,8 @@ virt-launcher-overcommit-vm-1-rtspw   2/2     Running   0          47m
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
-oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 \
+oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 
+
 -o jsonpath='{.items[0].spec.containers[?(@.name=="compute")].resources}{"\n"}' | jq
 ----
 
@@ -344,74 +339,71 @@ oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 \
 }
 ----
 
-+
-Using the *OpenShift Console*, navigate to *Workloads → Pods*.
++ 
+*OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 
 +
-From the *Project:* dropdown and select the *over-commit* namespace to see the *virt-launcher* pod for the VM.
+*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 
 +
-Click on the *virt-launcher* pod and to go the *YAML* tab to see the *cpu requests* value.
+*virt-launcher* ポッドをクリックし、*YAML* タブに移動して *cpu requests* の値を確認します。
 
 +
 image::exercise2/pod-cpu-details.png[title="Confirm number of CPUs", link=self, window=blank, width=100%]
 
 +
-IMPORTANT: **A VM with 32 vCPUs only requests `3200m` (0.1 * 32 = 3.2 CPU) by default!**
+IMPORTANT: **32個のvCPUを持つVMは、デフォルトで `3200m` （0.1 * 32 = 3.2 CPU）しか要求しません！**
 
 [#memory]
 == Memory Overcommit
 
-Kubernetes, until 1.21, and OpenShift, until 4.21, did not have a Generally Available native SWAP implementation and thus did not allow use of SWAP.
+Kubernetes（1.21まで）およびOpenShift（4.21まで）には、一般利用可能（GA）なネイティブのSWAP実装がなかったため、SWAPの使用が許可されていませんでした。
 
-Memory oversubscription without use of swap is hazardous because if the amount of memory required by processes running on a node exceeds the amount of RAM available, processes will be killed. That's not desirable, particularly for VMs where the workloads will be go offline if the VM is killed.
+スワップを使用しないメモリのオーバーサブスクリプション（過剰割り当て）は危険です。ノード上で実行されているプロセスが必要とするメモリ量が利用可能なRAMの量を超えると、プロセスが強制終了（Kill）されるためです。これは特に、VMが強制終了されるとワークロードがオフラインになってしまう仮想マシンの環境において望ましくありません。
 
-OpenShift Virtualization ships the *wasp-agent* to permit the controlled use of swap with VMs.
-Refer to the https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/postinstallation-configuration#virt-using-wasp-agent-to-configure-higher-vm-workload-density_virt-configuring-higher-vm-workload-density[wasp-agent component documentation] for more information.
+OpenShift Virtualizationは、VMでのスワップの制御された使用を許可するために *wasp-agent* を同梱しています。
+詳細については、 https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/postinstallation-configuration#virt-using-wasp-agent-to-configure-higher-vm-workload-density_virt-configuring-higher-vm-workload-density[wasp-agent component documentation]  を参照してください。
 
-NOTE: We won't configure the *wasp-agent* in this lab due to time and resource constraints but you can read the documentation and install procedures on your own time.
+NOTE: 時間とリソースの制約のため、このラボでは *wasp-agent* の構成は行いませんが、各自でドキュメントやインストール手順を確認することができます。
 
-IMPORTANT: Starting with Kubernetes 1.21 and OpenShift 4.21 the *wasp-agent* will be superseded by the native Kubernetes SWAP implementation.
+IMPORTANT: Kubernetes 1.21 および OpenShift 4.21 以降、*wasp-agent* はネイティブの Kubernetes SWAP 実装に置き換わる予定です。
 
-The *memoryOvercommitPercentage* parameter on the *hyperconverged* Custom Resources tells OpenShift Virtualization how to scale the memory requests for each VM. When set to the default, 100, it calculates memory requests based on the full amount of memory declared by the VM. When it's set to a higher value, the request is set to a proportionally smaller value than the VM requested, allowing for memory overcommit.
+*hyperconverged* カスタムリソースの *memoryOvercommitPercentage* パラメーターは、各VMのメモリ要求（Requests）をどのようにスケールするかを OpenShift Virtualization に指示します。デフォルトの 100 に設定されている場合、VMによって宣言された完全なメモリ量に基づいてメモリ要求を計算します。これより高い値に設定すると、要求（Request）はVMが要求した量よりも比例して小さい値に設定され、メモリのオーバーコミットが可能になります。
 
-For example, with a VM with 16GiB of memory.
+例えば、16GiBのメモリを持つVMの場合：
 
-If the overcommit percentage is set to its default value of 100, the memory request on the pod will be 16 GiB plus some extra for the overhead for the QEMU process running the VM.
+オーバーコミットのパーセンテージがデフォルト値の 100 に設定されている場合、ポッド上のメモリ要求は 16 GiB に、VMを実行する QEMU プロセスのオーバーヘッド（割当余剰分）を加えたものになります。
 
-If it's set to 200, the request on the pod will be set to 8GiB plus the overhead, with the VM still seeing 16GiB.
+これが 200 に設定されている場合、ポッド上の要求は 8GiB にオーバーヘッドを加えたものに設定されますが、VM内部からは引き続き 16GiB として認識されます。
 
 [IMPORTANT]
 ====
-To calculate the request value when overcommitting memory, you can use the following formula:
+メモリをオーバーコミットする場合の要求値（Request）は、次の数式を使って計算できます。
 
-requested memory = VM memory * (100 / memoryOvercommitPercentage)
+要求されるメモリ = VMのメモリ * (100 / memoryOvercommitPercentage)
 
 16 * (100 / 200) = 8GiB
 
-or, with 150% overcommit
+または、150% のオーバーコミットの場合：
 
 16 * (100 / 150) = 10.66GiB
 ====
 
 [NOTE]
 ====
-Memory overhead per virtual machine ≈ (0.002 × requested memory) + 218 MiB + 8 MiB × (number of vCPUs) + 16 MiB × (number of graphics devices) + (additional memory overhead)
+仮想マシンあたりのメモリオーバーヘッド ≈ (0.002 × 要求されるメモリ) + 218 MiB + 8 MiB × (vCPUの数) + 16 MiB × (グラフィックスデバイスの数) + (追加のメモリオーバーヘッド)
 
-See the section on https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/installing#memory-overhead_preparing-cluster-for-virt[Virtual machine memory overhead] in the OpenShift Virtualization docs.
+OpenShift Virtualization ドキュメントの https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/installing#memory-overhead_preparing-cluster-for-virt[仮想マシンのメモリオーバーヘッド（Virtual machine memory overhead）] のセクションを参照してください。
 ====
 
 [#memoryinstructions]
 === Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
-
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
-
-Using the *OpenShift Console*, navigate to *Virtualization → Virtual Machines*.
-
+*OpenShiftコンソール* を使用し、*Virtualization（仮想化） → Virtual Machines（仮想マシン）* に移動します。
 +
-Under *All projects*, select the *over-commit* namespace and select the *overcommit-vm-1* VM to view the *CPU/Memory* allocation.
+*All projects（すべてのプロジェクト）* の下で、*over-commit* ネームスペースを選択し、*overcommit-vm-1* VMを選択して *CPU/Memory* の割り当てを表示します。
 
 +
 image::exercise2/vm-memory-assigned.png[title="VM Memory Assigned", link=self, window=blank, width=100%]
@@ -432,18 +424,16 @@ oc get vm -n over-commit overcommit-vm-1 -o json | jq .spec.template.spec.domain
 ----
 
 +
-Using the *OpenShift Console*, navigate to *Workloads → Pods*.
-
+*OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 +
-From the *Project:* dropdown and select the *over-commit* namespace to see the *virt-launcher* pod for the VM.
-
+*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 +
-Click on the *virt-launcher* pod and to go the *YAML* tab to see the *memory requests* value.
+*virt-launcher* ポッドをクリックし、*YAML* タブに移動して *memory requests* の値を確認します。
 
 +
 image::exercise2/virt-launcher-memory-request.png[title="Virt-Launcher Memory Request", link=self, window=blank, width=100%]
 
-. Observe the memory requests for the *virt-launcher* pod compared to the memory allocated to the VM :
+. VMに割り当てられたメモリと比較して、*virt-launcher* ポッドのメモリ要求（Requests）を確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -457,26 +447,23 @@ oc get pod -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 -o json | jq '.
 ----
 "2564Mi"
 ----
++
+NOTE: *virt-launcher* ポッドは 2564Mi を要求しています。これは 2048Mi + **オーバーヘッド** です。
 
 +
-NOTE: The *virt-launcher* pod is requesting 2564Mi which is 2048Mi + **overhead**.
+IMPORTANT: このオーバーヘッドは必要かつ想定されているものであり、VMが適切に動作するために十分なリソースを確保するためのものです。
 
+. メモリオーバーコミットの有効化
 +
-IMPORTANT: This overhead is necessary and expected - it ensures the VM has enough resources to run properly.
-
-. Enable Memory Overcommit
-
+*OpenShiftコンソール* を使用し、*Virtualization（仮想化） → Overview（概要） → Settings（設定） → Cluster（クラスター） → General Settings（全般設定）* に移動します。
 +
-Using the *OpenShift Console*, navigate to *Virtualization → Overview → Settings → Cluster → General Settings*
-
-+
-Click the *Toggle Switch* to "Enable Memory Density"
+*トグルスイッチ* をクリックして、「Enable Memory Density（メモリ密度の有効化）」にします。
 
 +
 image::exercise2/enable-memory-overcommit.png[title="Enable Memory Overcommit", link=self, window=blank, width=100%]
 
 +
-You can confirm memory overcommit is enabled by checking the *hyperconverged* CR using the CLI:
+CLIを使って *hyperconverged* CRを確認することで、メモリオーバーコミットが有効になっていることを確認できます。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -490,53 +477,47 @@ oc get hyperconverged -n openshift-cnv kubevirt-hyperconverged -o json | jq '.sp
 ----
 150
 ----
++
+NOTE: これは、メモリオーバーコミット比率が *150%* （*1.5:1*）であることを意味します。
 
 +
-NOTE: This means that the memory overcommit ratio is _150%_ which is _1.5:1_.
-
-+
-. Now let's restart the VM and observe the memory request on the *virt-launcher* pod compared to the memory allocated to the VM.
+. それでは、VMを再起動し、VMに割り当てられたメモリと比較して、*virt-launcher* ポッドのメモリ要求（Request）がどう変化するかを確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
 virtctl restart overcommit-vm-1 -n over-commit
 ----
-
 +
 [,shell,role=wrap,subs="attributes"]
 .Output
 ----
 VM overcommit-vm-1 was scheduled to restart
 ----
-
 +
-Using the *OpenShift Console*, navigate to *Workloads → Pods*.
-
+*OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 +
-From the *Project:* dropdown and select the *over-commit* namespace to see the *virt-launcher* pod for the VM.
-
+*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 +
-Click on the *virt-launcher* pod and to go the *YAML* tab to see the *memory requests* value.
+*virt-launcher* ポッドをクリックし、*YAML* タブに移動して *memory requests* の値を確認します。
 
 +
 image::exercise2/virt-launcher-memory-request-overcommit.png[title="Virt-Launcher Memory Request 1.5x", link=self, window=blank, width=100%]
 
 +
-The *virt-launcher* pod is requesting _1972720981_ bytes which is ~ _1972Mi_  ~ _1.97GiB_.
+*virt-launcher* ポッドは *1972720981* バイト（~ *1972Mi* ~ *1.97GiB*）を要求しています。
 
 +
-NOTE: This is less than the _2048MiB_ requested by the VM. This is because the memory overcommit ratio is _150%_.
+NOTE: これはVMが要求した *2048MiB* よりも少なくなっています。これは、メモリオーバーコミット比率が *150%* に設定されているためです。
 
 +
-. Increase the memory overcommit ratio to _200%_ by patching the *hyperconverged* Custom Resource.
+. *hyperconverged* カスタムリソースをパッチすることで、メモリオーバーコミット比率を *200%* に引き上げます。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
 oc patch hyperconverged -n openshift-cnv kubevirt-hyperconverged --type merge -p '{"spec":{"higherWorkloadDensity":{"memoryOvercommitPercentage":200}}}'
 ----
-
 +
 [,text,role=wrap,subs="attributes"]
 .Output
@@ -549,7 +530,6 @@ hyperconverged.hco.kubevirt.io/kubevirt-hyperconverged patched
 ----
 oc get hyperconverged -n openshift-cnv kubevirt-hyperconverged -o json | jq '.spec.higherWorkloadDensity.memoryOvercommitPercentage'
 ----
-
 +
 [,text,role=wrap,subs="attributes"]
 .Output
@@ -560,11 +540,11 @@ oc get hyperconverged -n openshift-cnv kubevirt-hyperconverged -o json | jq '.sp
 +
 [NOTE]
 ====
-This means that the memory overcommit ratio is now _200%_ which is _2:1_.
+これは、メモリオーバーコミット比率が現在 *200%* （*2:1*）であることを意味します。
 ====
 
 +
-. Restart the VM and observe the memory request on the *virt-launcher* pod compared to the 2GiB allocated to the VM.
+. VMを再起動し、VMに割り当てられた 2GiB と比較して、*virt-launcher* ポッドのメモリ要求を確認します。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -578,13 +558,11 @@ virtctl restart overcommit-vm-1 -n over-commit
 ----
 VM overcommit-vm-1 was scheduled to restart
 ----
-
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
 oc get pod -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 -o json | jq '.items[0].spec.containers[0].resources.requests.memory'
 ----
-
 +
 [,text,role=wrap,subs="attributes"]
 .Output
@@ -595,21 +573,20 @@ oc get pod -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 -o json | jq '.
 +
 [NOTE]
 ====
-The *virt-launcher* pod is now requesting _1540Mi_ which is ~ _1.54GiB_.
+*virt-launcher* ポッドは現在 *1540Mi* （~ *1.54GiB*）を要求しています。
 
-Calculated as:
-
-2 * (100/200) = 1GiB + VM overhead
+計算方法：
+2 * (100/200) = 1GiB + VMのオーバーヘッド
 ====
+
 
 [IMPORTANT]
 ====
-Stop the *overcommit-vm-1* VM using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して *overcommit-vm-1* VM を停止してください。
 
 [,shell,role="execute wrap",subs="attributes"]
 ----
 virtctl stop overcommit-vm-1 -n over-commit
 ----
-
 *VM overcommit-vm-1 was scheduled to stop*
 ====
