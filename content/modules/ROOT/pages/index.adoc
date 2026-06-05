@@ -1,52 +1,54 @@
 = {lab_name}
 
-== Welcome to the OpenShift Virtualization Rosetta Stone Lab
+== OpenShift Virtualizationロゼッタストーンラボへようこそ
 
-OpenShift Virtualization is everywhere and has a major influence across our accounts.
-The interest level is high, but there is always the unavoidable question: How does it compare to other hypervisors?
+OpenShift Virtualizationはあらゆる場所で利用されており、当社の顧客アカウント全体に大きな影響を与えています。
 
-Some sellers are not well versed in other virtualization platforms.
+関心は高いものの、常に避けられない疑問があります。「他のハイパーバイザーと比較してどうなのか？」
 
-In this lab, we will guide you through the process of applying a sort of "Rosetta Stone" to OpenShift Virtualization and other virualization platforms.
+このラボでは、OpenShift Virtualizationと他の仮想化プラットフォームを結びつける「ロゼッタストーン」のようなものを活用するプロセスをご案内します。
 
-Rosetta Stone builds a mapping between traditional virtualization platforms and OpenShift Virtualization capabilities.
+ロゼッタストーンは、従来の仮想化プラットフォームとOpenShift Virtualizationの機能間のマッピングを作成します。
 
-Let's take that mapping and put it into practice to supercharge your knowledge and tackle those customer questions with confidence.
+このマッピングを実践することで、知識を飛躍的に向上させ、お客様からの質問に自信を持って対応できるようになります。
 
-In this lab, we will introduce and walk you through how to explain and demonstrate key administrative and VM owner capabilities for infrastructure optimization, workload availability, scalability, and resource management.
+このラボでは、インフラストラクチャの最適化、ワークロードの可用性、スケーラビリティ、リソース管理のための主要な管理者機能とVMオーナー機能について、説明とデモンストレーションの方法をご紹介します。
 
-You will walk away with the understanding, knowledge, and experience to showcase:
+このラボを通して、以下の内容を理解し、知識と経験を身につけ、実践できるようになります。
 
-* *Live Migration of Workloads:* Move VMs seamlessly between hosts with zero downtime
-* *CPU and Memory Overcommit:* Optimize resource utilization across your cluster
-* *Hot Plugging of CPU, Memory, and Disk Resources:* Scale VM resources without restarts
-* *Affinity and Anti-Affinity for VM Placement:* Control where VMs run for performance and availability
-* *Dynamic Rescheduling of Workloads:* Let the platform automatically optimize VM placement
-* *Fencing and How to Handle Node Failure:* Ensure workload resilience during infrastructure disruptions
-* *Decentralized Live Migration:* How to migrate workloads between namespaces and clusters
-* *VM Isolation and Security:* Control where VMs run for performance and availability
+* *Live Migration of Workloads:* ダウンタイムなしでホスト間でVMをシームレスに移動
+* *CPU and Memory Overcommit:* クラスター全体のリソース利用率を最適化する
+* *Hot Plugging of CPU, Memory, and Disk Resources:* 再起動せずにVMリソースを拡張する
+* *Affinity and Anti-Affinity for VM Placement:* パフォーマンスと可用性を考慮して、仮想マシンの実行場所を制御します。
+* *Dynamic Rescheduling of Workloads:* プラットフォームがVMの配置を自動的に最適化します
+* *Fencing and How to Handle Node Failure:* インフラストラクチャの障害発生時にワークロードの回復力を確保する
+* *Decentralized Live Migration:* 名前空間間およびクラスター間でワークロードを移行する方法
+* *VM Isolation and Security:* パフォーマンスと可用性を考慮して、仮想マシンの実行場所を制御します。
 
 image::virt-icon-large.png[virt-icon-large,55%,55%,align="left"]
 
 ifdef::vmware[]
 == VMware and OpenShift Virtualization
 
-VMware and OpenShift Virtualization are nearing feature parity, and for customers who are well educated, adoption is not a challenge.
+VMwareとOpenShift Virtualizationは機能面でほぼ同等になりつつあり、十分な知識を持つ顧客にとっては導入は容易です。
 
-However, because of the differing product philosophies, there is a significant difference between OpenShift Virtualization and VMware in the eyes of administorators and their management.
+しかし、製品開発の理念が異なるため、管理者や経営陣の目にはOpenShift VirtualizationとVMwareの間には大きな違いが見られます。
 
-VMware originated as a desktop software company, so every feature gets implemented in the graphical interface first.
-This hides nearly all the complexity from the average user.
-VMware administrators and their management teams rely on the graphical interface to configure and manage their virtual environment, and very sophisticated operations are hidden behind this interface.
+VMwareはデスクトップソフトウェア企業として創業したため、すべての機能はまずグラフィカルインターフェースに実装されます。
 
-Further, collaboration with a wider community has not been a requirement of VMware as a proprietary software company, so abstractions that allow automation have not been first to implemention.
+これにより、一般ユーザーからはほとんどの複雑な機能が隠蔽されます。
 
-OpenShift Virtualization, on the other hand, like the Kubernetes project it is part of (kubevirt,) does not implement features "graphical interface first."
-While Red Hat has been doing Virtualization on an enterprise scale since the 1990s, and continues to innovate today, our concerns are with community collaboration and this does not put graphical administration first.
+VMwareの管理者や経営陣は、仮想環境の設定と管理にグラフィカルインターフェースに依存しており、非常に高度な操作はこのインターフェースの裏側に隠されています。
+
+さらに、VMwareはプロプライエタリソフトウェア企業であるため、より広範なコミュニティとの連携は必須条件ではなく、自動化を可能にする抽象化は優先的に実装されていません。
+
+一方、OpenShift Virtualizationは、それが属するKubernetesプロジェクト（kubevirt）と同様に、「グラフィカルインターフェース優先」のアプローチは採用していません。
+
+Red Hatは1990年代からエンタープライズ規模の仮想化に取り組んでおり、現在も革新を続けていますが、私たちの関心はコミュニティとの連携にあり、グラフィカルな管理を最優先事項とはしていません。
 
 //image::index/vmware-overview.png[vmware-overview,100%,100%,align="left"]
 
-Use the table below as a guide to begin your exploration of the feature parity of OpenShift Virtualization and VMware.
+以下の表を参考に、OpenShift VirtualizationとVMwareの機能的な類似点について調べてみてください。
 
 .Feature Comparison
 [cols="1,2,2", options="header"]
@@ -82,12 +84,13 @@ Partner ecosystem
 endif::vmware[]
 
 [#labenvironment]
-== Lab Environment
+== ラボ観葉
 
-The terminal window to your right is *already* logged into the lab environment via the bastion host as the *{ssh_user}*.
-All steps of this lab are to be completed from the bastion host as the *{ssh_user}* logged in to the OpenShift cluster as *admin*, unless the OpenShift console is indicated.
+右側のターミナルウィンドウは、既に踏み台ホスト経由でラボ環境に *{ssh_user}* としてログインしています。
 
-The lab environment is running Red Hat OpenShift 4.20 with the following required operators pre-installed:
+OpenShiftコンソールが指定されていない限り、このラボのすべての手順は、踏み台ホスト上で *{ssh_user}* として OpenShift クラスタに *admin* としてログインした状態で実行してください。
+
+ラ​​ボ環境は Red Hat OpenShift 4.20 で動作しており、以下の必要なオペレーターがプリインストールされています。
 
 * OpenShift Virtualization
 * OpenShift Data Foundations
