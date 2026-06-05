@@ -1,55 +1,57 @@
+
 = Decentralized Live Migration
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
-OpenShift does live migration of storage and compute, as does VMware.
+OpenShiftは、VMwareと同様にストレージとコンピュートのライブマイグレーションを行います。
 
-Storage migration in VMware is already built in.
+VMwareにおけるストレージマイグレーションはすでに組み込まれています。
 
-This feature provides similar functionality and benefit as Cross-vCenter vMotion.
+この機能は、Cross-vCenter vMotion と同様の機能およびメリットを提供します。
 ****
 endif::[]
 
-A decentralized live migration is a variation of a storage live migration that allows you to migrate a running *VirtualMachine* between *namespaces* and *clusters*.
+分散型ライブマイグレーション（Decentralized Live Migration）は、ストレージライブマイグレーションのバリエーションの1つであり、実行中の *VirtualMachine* を *ネームスペース* 間や *クラスター* 間でマイグレーションすることができます。
 
-This can be useful to:
+これは以下のような場合に役立ちます。
 
-*Balance Workloads*: Distributing virtual machines between clusters helps optimize resource utilization. If one cluster is heavily loaded while another is idle, rebalancing can significantly improve operational efficiency.
+*ワークロードのバランシング（負荷分散）*：クラスター間で仮想マシンを分散させることで、リソースの利用率を最適化できます。1つのクラスターの負荷が非常に高く、もう1つのクラスターがアイドル状態である場合、再配置を行うことで運用の効率性を大幅に向上させることができます。
 
-*Facilitate Maintenance*: For environments with multiple clusters, virtual machine migration allows for seamless maintenance. You can move virtual machines off a cluster slated for upgrades or shutdown, ensuring zero downtime for your services.
+*メンテナンスの円滑化*：複数のクラスターが存在する環境では、仮想マシンのマイグレーションによってシームレスなメンテナンスが可能になります。アップグレードやシャットダウンが予定されているクラスターから仮想マシンを移動させることで、サービスのダウンタイムをゼロに抑えることができます。
 
-*Expedite Restores*: Instant restore capabilities from backup vendors, particularly when coupled with namespace migration, can drastically speed up recovery times. virtual machines can be quickly restored to a temporary location and then migrated to their original namespace and storage.
+*迅速なリストア（復元）*：バックアップベンダーが提供するインスタントリストア機能は、特にネームスペースのマイグレーションと組み合わせることで、復旧時間を劇的に短縮できます。仮想マシンを一時的な場所に素早くリストアした後、元のネームスペースとストレージにマイグレーションすることができます。
 
-This lab demonstrates the forthcoming Tech Preview capabilities of Decentralized Live Migration. In this lab, we will walk through the live migration of a *VirtualMachine* from one *Namespace* to another. The process of live migrating between namespaces follows the same process as if you were to migrate a *VirtualMachine* between 2 clusters.
+このラボでは、今後登場するテックプレビュー（Tech Preview）機能である「分散型ライブマイグレーション」の機能を実証します。このラボでは、ある *Namespace（ネームスペース）* から別のネームスペースへの *VirtualMachine* のライブマイグレーション手順を実行します。ネームスペース間でライブマイグレーションを行うプロセスは、2つのクラスター間で *VirtualMachine* をマイグレーションする場合とまったく同じプロセスに従います。
 
 [NOTE]
-=====
-The UI based workflow is not fully functional yet. During this lab we will introduce you to the UI workflow, but perform the migration through the CLI.
-=====
+====
+UIベースのワークフローはまだ完全には機能していません。このラボでは、UIでのワークフローを紹介しますが、実際のマイグレーションはCLIを通じて実行します。
+====
 
 [#howdeclm]
 == How does it work?
 
-The migration involves two *VirtualMachineInstances* and two *VirtualMachineInstanceMigration* objects. Like a storage live migration, disk contents are copied over the network to the receiving *VirtualMachine*. The key difference is that the receiving virtual machine has a completely separate *VirtualMachineInstance*. In order to coordinate the migration, the status of the source and target *VirtualMachineInstance* has to be synchronized. A dedicated synchronization controller, running in the *openshift-cnv* namespace facilitates communication between the source and target *VirtualMachineInstances*.
+このマイグレーションには、2つの *VirtualMachineInstance* と2つの *VirtualMachineInstanceMigration* オブジェクトが関与します。ストレージライブマイグレーションと同様に、ディスクの内容はネットワーク経由で受信側の *VirtualMachine* にコピーされます。主な違いは、受信側の仮想マシンが完全に別の *VirtualMachineInstance* を持っている点です。マイグレーションを調整するために、移行元（ソース）と移行先（ターゲット）の *VirtualMachineInstance* のステータスを同期させる必要があります。*openshift-cnv* ネームスペースで実行される専用の同期コントローラー（`virt-synchronization-controller`）が、ソースとターゲットの *VirtualMachineInstance* 間の通信を仲介します。
 
 [#decmlrequirements]
 == Requirements
 
-These requirements have already been enabled on your cluster and are noted for your reference.
+これらの要件はラボのクラスターであらかじめ有効化されており、参照用に記載しています。
 
-* The *Migration Toolkit for Virtualization (MTV)* Operator must be installed with the feature *feature_ocp_live_migration* set to *true* when creating the *ForkliftController* CR
-* You must enable the *DecentralizedLiveMigration* *featureGate* on the *hyperconverged* Custom Resource
+* *Migration Toolkit for Virtualization (MTV)* Operator がインストールされており、*ForkliftController* CRを作成する際に機能フラグ *feature_ocp_live_migration* が *true* に設定されていること。
+* *hyperconverged* カスタムリソースで *DecentralizedLiveMigration* の *featureGate* を有効にしていること。
 
 include::lab-access.adoc[]
 
 [#decmlinstructions]
 == CLI Based Instructions
 
-. Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
++
 
+. 移行元（ソース）の仮想マシンを起動します。
 
-. Start the source Virtual Machine
 +
 [.wrap,console,role=execute]
 ----
@@ -61,9 +63,9 @@ virtctl start vm-migration-ns-ns-live -n vm-live-migration-source
 ----
 VM vm-migration-ns-ns-live was scheduled to start
 ----
-
 +
-. Verify the source *VirtualMachineInstance* is running.
+. ソースの *VirtualMachineInstance* が実行中であることを確認します。
+
 +
 [.wrap,console,role=execute]
 ----
@@ -71,7 +73,7 @@ oc get vmi -n vm-live-migration-source
 ----
 
 +
-The output will look similar to the following, with a different *IP* and *NODENAME*:
+出力は以下のようになります（*IP* や *NODENAME* は環境によって異なります）。
 
 +
 [source,console]
@@ -79,18 +81,15 @@ The output will look similar to the following, with a different *IP* and *NODENA
 NAME                     AGE  PHASE    IP          NODENAME               READY
 vm-migration-ns-ns-live  28m  Running  10.233.2.16 worker-cluster-hflz6-3 True
 ----
-
 +
-Now let's migrate our virtual machine *vm-migration-ns-ns-live* from the namespace *vm-live-migration-source* to a new namespace *vm-live-migration-destination*.
+それでは、仮想マシン *vm-migration-ns-ns-live* を、ネームスペース *vm-live-migration-source* から新しいネームスペース *vm-live-migration-destination* へマイグレーションしてみましょう。
 
 [start=3]
-. As we noted above, the migration requires two *VirtualMachineInstances*.
-
+. 先述の通り、このマイグレーションには2つの *VirtualMachineInstance* が必要です。
 +
-The first step is to create an empty *DataVolume* for the receiver virtual machine in the destination namespace. +
-
+最初のステップとして、移行先（デスティネーション）のネームスペースに、受信側仮想マシン用の空の *DataVolume* を作成します。
 +
-Execute the following command to create the destination *DataVolume*:
+次のコマンドを実行して、移行先の *DataVolume* を作成します。
 
 +
 [.wrap,yaml,role=execute]
@@ -113,12 +112,10 @@ spec:
         storage: 30Gi
 EOF
 ----
-
 +
-Confirm the *DataVolume* and associated *PersistentVolumeClaim* have been created by executing the following two commands:
-
+次の2つのコマンドを実行して、*DataVolume* とそれに関連付けられた *PersistentVolumeClaim* が作成されたことを確認します。
 +
-It is expected that the DV and PVC are *PendingPopulation* and *Pending* until the migration starts.
+マイグレーションが開始されるまで、DV と PVC はそれぞれ *PendingPopulation* および *Pending* 状態になるのが正常な挙動です。
 
 +
 [.wrap,console,role=execute]
@@ -143,29 +140,28 @@ oc get PersistentVolumeClaim -n vm-live-migration-destination
 [source,console]
 ----
 NAME                     STATUS   VOLUME  CAPACITY  ACCESS MODES  STORAGECLASS                          VOLUMEATTRIBUTESCLASS  AGE
-vm-migration-ns-ns-live  Pending                                  ocs-external-storagecluster-ceph-rbd  <unset>                2m5s
+vm-migration-ns-ns-live  Pending                                  ocs-external-storagecluster-ceph-rbd                  2m5s
 ----
-+
 
++
 [start=4]
-. Next, create the receiver virtual machine in the destination namespace
-
+. 次に、移行先のネームスペースに受信側の仮想マシンを作成します。
 +
-The destination *VirtualMachine* is same as the source *VirtualMachine* except for two key differences:
-
+移行先の *VirtualMachine* は、以下の2つの重要な相違点を除き、移行元の *VirtualMachine* と同じです。
 +
 [loweralpha]
-.. The destination *VirtualMachine* has an annotation to set the post live migration *runStrategy*
+.. 移行先の *VirtualMachine* には、ライブマイグレーション後の *runStrategy* を設定するためのアノテーション（注釈）が付与されています。
 
 +
 [source,yaml]
+
 ----
     kubevirt.io/restore-run-strategy: Always
 ----
 
 +
 [loweralpha,start=2]
-.. The destination virtual machine has different *spec.runStrategy*
+.. 移行先の仮想マシンは、異なる *spec.runStrategy* を持っています。
 
 +
 [source,yaml]
@@ -174,7 +170,7 @@ The destination *VirtualMachine* is same as the source *VirtualMachine* except f
 ----
 
 +
-. Execute the following command to create the destination virtual machine:
+. 次のコマンドを実行して、移行先の仮想マシンを作成します。
 
 +
 [.wrap,yaml,role=execute]
@@ -254,7 +250,7 @@ EOF
 ----
 
 +
-Confirm the *VirtualMachine* and associated *VirtualMachineInstance* have been created by executing the following two commands:
+次の2つのコマンドを実行して、*VirtualMachine* とそれに関連付けられた *VirtualMachineInstance* が作成されたことを確認します。
 
 +
 [.wrap,console,role=execute]
@@ -281,16 +277,14 @@ oc get VirtualMachineInstance -n vm-live-migration-destination
 NAME                      AGE     PHASE            IP    NODENAME   READY
 vm-migration-ns-ns-live   5m55s   WaitingForSync                    False
 ----
-
 +
-You will notice that the *VirtualMachine* and *VirtualMachineInstance* have a unique *PHASE*, *WaitingForReceiver* and *WaitingForSync*.
-
+*VirtualMachine* と *VirtualMachineInstance* が、それぞれ *WaitingForReceiver* および *WaitingForSync* という固有の *PHASE（フェーズ）* になっていることが確認できます。
 +
-This indicates the *VirtualMachine* is waiting for the migration to start as a receiver and the *VirtualMachineInstance* is waiting for data to be synchronized from the source *VirtualMachine*.
+これは、*VirtualMachine* が受信側（Receiver）としてマイグレーションの開始を待機しており、*VirtualMachineInstance* はソースの *VirtualMachine* からデータが同期されるのを待機している状態を示しています。
 
 +
 [start=6]
-. With the destination *VirtualMachine* and *VirtualMachineInstance* waiting, create the destination *VirtualMachineInstanceMigration* by executing the following command:
+. 移行先の *VirtualMachine* と *VirtualMachineInstance* が待機状態になったら、次のコマンドを実行して移行先の *VirtualMachineInstanceMigration* を作成します。
 
 +
 [.wrap,yaml,role=execute]
@@ -307,13 +301,15 @@ spec:
   vmiName: vm-migration-ns-ns-live
 EOF
 ----
+
 +
 [NOTE]
-=====
-The *migrationID* field in the YAML above does not refer to anything specific, but must be unique across all migrations. You may use any unique text in that field, but both the source and destination *VirtualMachineInstanceMigration* objects must use the same *migrationID* for a migration.
-=====
+====
+上記のYAMLにおける *migrationID* フィールドは特定のオブジェクトを指すものではありませんが、すべてのマイグレーションにおいて一意（ユニーク）である必要があります。このフィールドには任意の一意のテキストを使用できますが、1つのマイグレーションに対してソース側とデスティネーション側の両方の *VirtualMachineInstanceMigration* オブジェクトで同じ *migrationID* を使用する必要があります。
+====
+
 +
-Confirm the destination *VirtualMachineInstanceMigration* has been created by executing the following command:
+次のコマンドを実行して、移行先の *VirtualMachineInstanceMigration* が作成されたことを確認します。
 
 +
 [.wrap,console,role=execute]
@@ -329,14 +325,12 @@ ns-to-ns-vm-live-migration-instance-destination   WaitingForSync   vm-migration-
 ----
 
 [start=7]
-. With the destination *VirtualMachineInstanceMigration* waiting, the final step is to create the source *VirtualMachineInstanceMigration*.
-
+. 移行先の *VirtualMachineInstanceMigration* が待機状態になったら、最後のステップとして、移行元の *VirtualMachineInstanceMigration* を作成します。
 +
-To create the source *VirtualMachineInstanceMigration*, we need the *IP address* of the leader *virt-synchronization-controller*.
-
+移行元の *VirtualMachineInstanceMigration* を作成するには、リーダー（アクティブ）である *virt-synchronization-controller* の *IPアドレス* が必要です。
 +
 [loweralpha]
-.. Find the IP address of the *virt-synchronization-controller* lease holder:
+.. リースを保持している *virt-synchronization-controller* のIPアドレスを見つけます。
 
 +
 [.wrap,console,role=execute]
@@ -347,18 +341,18 @@ oc get pods $(oc get leases virt-synchronization-controller -n openshift-cnv -o 
 +
 [IMPORTANT]
 ====
-The *IP address* in your cluster *will be different*! Make sure you use the correct IP address from the output!
+お使いのクラスターの *IPアドレスはこれとは異なります*！出力された正しいIPアドレスを使用していることを必ず確認してください！
 ====
 
 +
-.Example output
+.出力例
 [source,console]
 ----
 10.232.1.136
 ----
 
 +
-. Take the *pod* *IP address* from the previous command output (*10.232.1.136* in the example) and replace *<leader_sync_controller_ip>* in the *VirtualMachineInstanceMigration* YAML below. Take care that you do not remove the port *:9185*
+. 前のコマンドの出力から *ポッドのIPアドレス* （例では *10.232.1.136*）をコピーし、以下の *VirtualMachineInstanceMigration* YAMLの *<leader_sync_controller_ip>* の部分を置き換えます。その際、ポート番号の `:9185` を削除してしまわないよう注意してください。
 
 +
 [.wrap,yaml,role=execute]
@@ -379,11 +373,11 @@ EOF
 
 [#decmlmonitor]
 == Monitor the Migration
-When the source *VirtualMachineInstanceMigration* above is created, the migration will start. You can monitor the migration through the CLI or the Console.
+上記の移行元の *VirtualMachineInstanceMigration* が作成されると、マイグレーションが開始されます。マイグレーションの進捗は、CLIまたはコンソールから監視できます。
 
-Ensure you are <<labaccess,logged in to both the OpenShift Console and CLI as the *admin* user>> from your *web browser* and the *terminal* window on the right side of your screen and continue to the next step.
+*Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 
-. From the CLI
+. CLIからの確認方法
 
 +
 [.wrap,console,role=execute]
@@ -393,9 +387,9 @@ oc get vmim -A -w
 
 +
 [NOTE]
-=====
-Using *-w* to apply a watch, you will see the *Migration* progress through a number of *PHASE*s from *Scheduling* through to *Succeeded*.
-=====
+====
+`-w` パラメーターを使用して監視（Watch）を適用すると、*Migration* が *Scheduling* から *Succeeded* まで、いくつかの一連の *PHASE* を経て進むのを確認できます。
+====
 
 +
 [source,console]
@@ -413,15 +407,13 @@ vm-live-migration-source        ns-to-ns-vm-live-migration-instance-source      
 vm-live-migration-destination   ns-to-ns-vm-live-migration-instance-destination   Running           vm-migration-ns-ns-live
 vm-live-migration-destination   ns-to-ns-vm-live-migration-instance-destination   Succeeded         vm-migration-ns-ns-live
 ----
-
 +
 [.wrap,console,role=execute]
 ----
 oc get vm -n vm-live-migration-source
 ----
-
 +
-The *VirtualMachine* will show it is *Migrating*.
+*VirtualMachine* のステータスが *Migrating（マイグレーション中）* と表示されます。
 
 +
 [source,console]
@@ -431,85 +423,74 @@ vm-migration-ns-ns-live   7m1s   Migrating   False
 ----
 
 [start=2]
-. From the Console
+. コンソールからの確認方法
 
 +
-From the left side panel, navigate to *Virtualization -> Virtual Machines*. Under *All projects*, select the *vm-live-migration-source* namespace and click on the Virtual Machine named *vm-migration-ns-ns-live*.
-
+左側のサイドパネルから、*Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。*All projects（すべてのプロジェクト）* の下で、*vm-live-migration-source* ネームスペースを選択し、*vm-migration-ns-ns-live* という名前の仮想マシンをクリックします。
 +
-On the *Virtual machine details* page, you will see the *Source* VM is *Running*.
+*Virtual machine details（仮想マシンの詳細）* ページで、移行元（*Source*）のVMが *Running（実行中）* であることが確認できます。
 
 +
 image::exercise7/image1-ui-src-vm-running.png[title="Source Virtual Machine Details - Running", link=self, window=blank, width=100%]
 
 +
-To view the *Destination* VM, select by the *Namespace* *vm-live-migration-destination* to expand it and click on the virtual machine named *vm-migration-ns-ns-live*.
-
+移行先（*Destination*）のVMを表示するには、*Namespace* ドロップダウンから *vm-live-migration-destination* を選択して展開し、*vm-migration-ns-ns-live* という名前の仮想マシンをクリックします。
 +
-On the *Virtual machine details* page, you will see the *Destination* VM. If the migration has not started, it will have a status of *WaitingForReceiver*.
+*Virtual machine details（仮想マシンの詳細）* ページに、移行先のVMが表示されます。マイグレーションがまだ開始されていない場合、ステータスは *WaitingForReceiver* になります。
 
 +
 image::exercise7/image2-ui-dest-waiting.png[title="Destination Virtual Machine Details - WaitingForReceiver", link=self, window=blank, width=100%]
 
 +
-If the *Migration* has started and is in the early stages, the VM will a status of *Starting*.
+マイグレーションが開始され、初期段階にある場合、VMのステータスは *Starting（起動中）* になります。
 
 +
 image::exercise7/image3-ui-dest-starting.png[title="Destination Virtual Machine Details - Starting", link=self, window=blank, width=100%]
 
 +
-When the *Source* and *Destination* are ready, the status of the *Destination* VM will change to *Migrating*.
+ソースとデスティネーションの両方の準備が整うと、移行先VMのステータスが *Migrating（マイグレーション中）* に変わります。
 
 +
 image::exercise7/image4-ui-dest-migrating.png[title="Destination Virtual Machine Details - Migrating", link=self, window=blank, width=100%]
 
 +
-Once the *Destination* VM starts *Migrating*, you can click on the *Migrating* status which will display a pop-up panel with information about the state of the migration.
+移行先VMのステータスが *Migrating* に変わったら、その *Migrating* ステータスをクリックすることで、マイグレーションの状態に関する情報を記載したポップアップパネルを表示できます。
 
 +
 image::exercise7/image5-ui-migrating-overview-panel.png[title="Destination Virtual Machine - Migration Pop-up Panel", link=self, window=blank, width=100%]
 
 +
-From the *Migrating* pop-up panel, there is a link *Migration metrics*. Clicking that link will take you to the *Metrics* tab with detailed information about the VM and the migration.
-
+*Migrating* ポップアップパネル内に、*Migration metrics（マイグレーションメトリクス）* というリンクがあります。そのリンクをクリックすると、VMとマイグレーションに関する詳細情報が含まれる *Metrics（メトリクス）* タブに移動します。
 +
 image::exercise7/image6-ui-dest-migrating-metrics.png[title="Destination Virtual Machine - Migration Metrics", link=self, window=blank, width=100%]
-
 +
-Scrolling down on the *Metrics* page, you will see more migration metrics and a *LiveMigration progress* bar.
-
+*Metrics* ページを下にスクロールすると、さらなるマイグレーションメトリクスと *LiveMigration progress（ライブマイグレーションの進捗）* バーが表示されます。
 +
 image::exercise7/image7-ui-dest-migrating-metrics2.png[title="Destination Virtual Machine - Migration Metrics", link=self, window=blank, width=100%]
-
 +
-As the migration progresses, you will see the *LiveMigration progress* bar move until it reaches *100%* and displays a *Complete time*.
-
+マイグレーションが進行するにつれて、*LiveMigration progress* バーが動き、*100%* に達すると *Complete time（完了時間）* が表示されます。
 +
 image::exercise7/image8-ui-dest-migrating-progress-bar.png[title="Destination Virtual Machine - Migration Progress Bar", link=self, window=blank, width=100%]
-
 +
-Navigating back to the *Overview* tab, you will see that the *Destination* VM is now in a *Running* state. You can also see, in the *Projects* sidebar, that the *Source* VM is now *Stopped*.
-
+*Overview（概要）* タブに戻ると、移行先（*Destination*）のVMが *Running（実行中）* 状態になっていることが確認できます。また、サイドバーの *Projects* を見ると、移行元（*Source*）のVMが現在 *Stopped（停止）* になっていることも確認できます。
 +
-This marks the successful completion of the *Namespace* to *Namespace* live migration.
-
+これにより、ネームスペースからネームスペースへのライブマイグレーションが正常に完了したことになります。
 +
-image::exercise7/image9-ui-dest-running-src-stopped.png[title="Destination Virtual Machine - Running & Source Virtual Machine - Stopped, link=self, window=blank, width=100%]
+image::exercise7/image9-ui-dest-running-src-stopped.png[title="Destination Virtual Machine - Running & Source Virtual Machine - Stopped", link=self, window=blank, width=100%]
 
 [#decmluiinstructions]
 == UI Based Instructions
 
 [IMPORTANT]
-=====
-The UI based workflow is not fully functional yet. The workflow is complete, but the migration will fail when the plan is created. The purpose of this section is to introduce you to the UI based workflow.
-=====
+====
+UIベースのワークフローはまだ完全には機能していません。ワークフロー画面自体は完成していますが、プランを作成した時点でマイグレーションは失敗します。このセクションの目的は、UIベースのワークフローの画面構成や流れを紹介することです。
+====
 
-. Ensure you are <<labaccess,logged in to the OpenShift Console as the *admin* user>> from your *web browser* and continue to the next step.
+. *Webブラウザ* からOpenShiftコンソールに *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 
-. Before you start, cleanup and VMs from the CLI based migration.
-
+. 開始する前に、CLIベースのマイグレーションで作成されたVMなどのクリーンアップを行います。
 +
-Stop the destination VM
+移行先（デスティネーション）のVMを停止します。
 
 +
 [.wrap,console,role=execute]
@@ -522,9 +503,8 @@ virtctl stop vm-migration-ns-ns-live -n vm-live-migration-destination
 ----
 VM vm-migration-ns-ns-live was scheduled to stop
 ----
-
 +
-Delete the destination VM
+移行先のVMを削除します。
 
 +
 [.wrap,console,role=execute]
@@ -539,7 +519,7 @@ virtualmachine.kubevirt.io "vm-migration-ns-ns-live" deleted
 ----
 
 +
-Start the source VM
+移行元（ソース）のVMを起動します。
 
 +
 [.wrap,console,role=execute]
@@ -554,7 +534,7 @@ VM vm-migration-ns-ns-live was scheduled to start
 ----
 
 +
-Make sure the source VM is *Running*
+ソースVMが *Running（実行中）* であることを確認します。
 
 +
 [.wrap,console,role=execute]
@@ -568,119 +548,105 @@ oc get vmi -n vm-live-migration-source
 NAME                      AGE    PHASE     IP             NODENAME                        READY
 vm-migration-ns-ns-live   113s   Running   10.232.1.115   control-plane-cluster-dvddt-1   True
 ----
-
 +
-. From the left side panel, navigate to *Migration for Virtualization* and click *Migration plans*.
-
+. 左側のサイドパネルから、*Migration for Virtualization（仮想化のマイグレーション）* に移動し、*Migration plans（マイグレーションプラン）* をクリックします。
 +
 image::exercise7/ui/image1-click-migration-plans.png[title="Migration Plans", link=self, window=blank, width=100%]
 
-. From the *Migration plans* page, click *Create plan*.
++
+. *Migration plans* ページから、*Create plan（プランの作成）* をクリックします。
 
 +
 [NOTE]
 ====
-If *Create plan* is greyed out, make sure you change the *project* to *openshift-mtv* or *All projects* from the *Project:* dropdown at the top of the page.
+*Create plan* ボタンがグレーアウトしている場合は、ページ上部の *Project:* ドロップダウンから、プロジェクトが *openshift-mtv* または *All projects（すべてのプロジェクト）* に選択されていることを確認してください。
 ====
-
 +
 image::exercise7/ui/image2-click-create-plans.png[title="Create Migration Plan", link=self, window=blank, width=100%]
 
-. On the *Creation migration plan* page, give your plan a name like `namespace-to-namespace`.
-
 +
-Leave the *Plan project* as the default value of *openshift-mtv*.
+. *Creation migration plan（マイグレーションプランの作成）* ページで、プランに `namespace-to-namespace` のような名前を入力します。
++
+*Plan project（プランプロジェクト）* はデフォルト値の *openshift-mtv* のままにします。
 
 +
 image::exercise7/ui/image3-planinfo-name-project.png[title="Create migration plan", link=self, window=blank, width=100%]
 
-. Further down the *Creation migration plan* page, select *host* as both the *Target* and *Source* provider and select *vm-live-migration-destination* as the *Target project*.
 
+. 同じ画面のさらに下部で、*Target（ターゲット）* と *Source（ソース）* のプロバイダーの両方に *host* を選択し、*Target project（ターゲットプロジェクト）* として *vm-live-migration-destination* を選択します。
 +
-Click *Next*
-
+*Next（次へ）* をクリックします。
 +
 [NOTE]
 ====
-Because we are migration our *VirtualMachine* between *Namespaces* within the same cluster, our *Source* and *Target* provider are the same. If we were migrating between clusters, we would have a different provider for the *Target* cluster and select that instead.
+今回は同じクラスター内の *Namespaces* 間で *VirtualMachine* をマイグレーションするため、*Source* と *Target* のプロバイダーは同じになります。もしクラスター間でマイグレーションを行う場合は、*Target* クラスターに対して異なるプロバイダーが存在するため、代わりにそれを選択することになります。
 ====
 
 +
 image::exercise7/ui/image4-planinfo-source-target-providers.png[title="Create migration plan", link=self, window=blank, width=100%]
 
-. From the *Virtual machines* list, select *vm-migration-ns-ns-live* as the *VirtualMachine* you want to migrate.
-
+. *Virtual machines* のリストから、マイグレーションしたい仮想マシンとして *vm-migration-ns-ns-live* を選択します。
 +
-Click *Next*
+*Next（次へ）* をクリックします。
 
 +
 image::exercise7/ui/image5-select-virtual-machine.png[title="Select Virtual Machine", link=self, window=blank, width=100%]
 
-. On the *Network Map* page, select *Use new network map* and select */Default network* as the *Source network*.
+. *Network Map（ネットワークマップ）* ページで、*Use new network map（新しいネットワークマップの使用）* を選択し、*Source network（ソースネットワーク）* として */Default network* を選択します。
++
+*Target network（ターゲットネットワーク）* はすでに *Default network* に設定されているはずです。
++
+*Next（次へ）* をクリックします。
 
 +
-The *Target network* should already be set to *Default network*.
-
-+
-Click *Next*
-
-+
-
 image::exercise7/ui/image6-new-network-map.png[title="Create Network Map", link=self, window=blank, width=100%]
 
-. On the *Storage Map* page, select *Use new storage map* and select *ocs-external-storagecluster-ceph-rbd* as the *Source storage*.
-
+. *Storage Map（ストレージマップ）* ページで、*Use new storage map（新しいストレージマップの使用）* を選択し、*Source storage（ソースストレージ）* として *ocs-external-storagecluster-ceph-rbd* を選択します。
 +
-The *Target storage* should already be set to *ocs-external-storagecluster-ceph-rbd*.
-
+*Target storage（ターゲットストレージ）* はすでに *ocs-external-storagecluster-ceph-rbd* に設定されているはずです。
 +
-Click *Next*
+*Next（次へ）* をクリックします。
 
 +
 image::exercise7/ui/image7-new-storage-map.png[title="Create Storage Map", link=self, window=blank, width=100%]
 
-. On the *Migration type* page, select *Live migration*.
-
+. *Migration type（マイグレーションタイプ）* ページで、*Live migration（ライブマイグレーション）* を選択します。
 +
-Click *Next*
+*Next（次へ）* をクリックします。
 
 +
 image::exercise7/ui/image8-migration-type-live.png[title="Migration Type", link=self, window=blank, width=100%]
 
-. On the *Other settings* page, leave the defaults.
-
+. *Other settings（その他の設定）* ページは、デフォルトのままにします。
 +
-Click *Next*
+*Next（次へ）* をクリックします。
 
 +
 image::exercise7/ui/image9-power-state.png[title="Other Settings", link=self, window=blank, width=100%]
 
-. On the *Hooks* page, leave the defaults.
-
+. *Hooks（フック）* ページは、デフォルトのままにします。
 +
-Click *Next*
+*Next（次へ）* をクリックします。
 
 +
 image::exercise7/ui/image10-migration-hooks.png[title="Hooks", link=self, window=blank, width=100%]
 
-. On the *Review and create* page, make sure everything looks correct.
-
+. *Review and create（確認と作成）* ページで、すべての内容が正しいことを確認します。
 +
-Click *Create plan*
+*Create plan（プランの作成）* をクリックします。
 
 +
 image::exercise7/ui/image11-review-create.png[title="Review and Create", link=self, window=blank, width=100%]
 
-. When the *Plan* is created, you will be taken to the *Plan details* page where you can monitor the status and progress of your migration.
-
+. *Plan* が作成されると、マイグレーションのステータスと進捗を監視できる *Plan details（プランの詳細）* ページに移動します。
 +
 [NOTE]
 ====
-We see *The plan is not ready* with a status of *Cannot start* due to a *MAC address conflict*.
+画面に *The plan is not ready* と表示され、*MACアドレスの競合（MAC address conflict）* が原因でステータスが *Cannot start（開始不可）* になっていることが確認できます。
 
-Once this issue is resolved, the migration will continue successfully with no changes in the workflow.
+この問題が解決されれば、ワークフローを変更することなく、マイグレーションは正常に続行されます。
 
-You can follow https://issues.redhat.com/browse/CNV-72966[CNV-72966 - loosen (or drop) mac collision detection], targeting 4.22, for more information.
+詳細については、バージョン 4.22 をターゲットとして作業が進められている https://issues.redhat.com/browse/CNV-72966[CNV-72966 - loosen (or drop) mac collision detection]をフォローして確認することができます。
 ====
 
 +
@@ -688,9 +654,9 @@ image::exercise7/ui/image12-plan-created-error.png[title="Plan Details", link=se
 
 [IMPORTANT]
 ====
-Stop the *vm-migration-ns-ns-live* VM using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して、移行先ネームスペースにある *vm-migration-ns-ns-live* VM を停止してください。
 
-[.wrap,console,role=execute]
+[,shell,role="execute wrap",subs="attributes"]
 ----
 virtctl stop vm-migration-ns-ns-live -n vm-live-migration-destination
 ----
