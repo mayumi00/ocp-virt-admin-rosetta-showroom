@@ -1,63 +1,64 @@
+
 = Dynamic Rescheduling of Workloads
 
 ifdef::vmware[]
 .Rosetta Stone: VMware
 ****
-This feature is similar to VMware's Distributed Resource Scheduler (DRS).
+この機能は、VMwareの Distributed Resource Scheduler (DRS) に類似しています。
 
-Similar to DRS, the OpenShift Descheduler is not a mandatory element of VM creation, but can be applied at any time.
+DRSと同様に、OpenShift Descheduler（デスケジューラー）はVM作成に必須の要素ではありませんが、いつでも適用することができます。
 ****
 endif::[]
 
 [#dynamicreschintro]
 == Introduction
 
-You can use the descheduler to evict pods based on specific strategies so that the pods can be rescheduled onto more appropriate nodes.  But eviction is a stop and start and no one wants their VMs restarted to achieve this.
+デスケジューラーを使用すると、特定の戦略に基づいてポッドを立ち退き（Evict）させ、より適切なノードに再スケジュールすることができます。しかし、通常の立ち退きは「停止と起動（再起動）」を伴うため、これを達成するためにVMを再起動させたい人はいません。
 
-With OpenShift Virtualization, we handle this gracefully through the *virt-api-validator* *validating webhook*. This webhook intercepts all eviction requests and makes a series of decision on how to treat the request.
+OpenShift Virtualizationでは、*virt-api-validator* という *Validating Webhook（検証Webフック）* を使用して、この処理をスムーズに処理します。このWebフックはすべての立ち退き要求をインターセプトし、その要求をどのように処理するかの一連の判断を行います。
 
-The short summary is that when an eviction request is received for a Virtual Machine that is live migratable, that VM is live migrated instead of being evicted.
+簡単に要約すると、ライブマイグレーションが可能な仮想マシンに対して立ち退き要求が受信された場合、そのVMは立ち退きさせられる代わりに、ライブマイグレーションが実行されます。
 
-https://github.com/kubevirt/kubevirt/blob/main/docs/handling-eviction-requests.md[How Evictions are Handled in OpenShift Virtualization]
+https://github.com/kubevirt/kubevirt/blob/main/docs/handling-eviction-requests.md[OpenShift Virtualizationにおける立ち退き要求の処理方法]
 
-You can benefit from descheduling running pods in situations such as the following:
+以下のような状況において、実行中のポッドをデスケジュール（再配置）することのメリットが得られます。
 
-* Nodes are underutilized or overutilized.
-* Pod and node affinity requirements, such as taints or labels, have changed and the original scheduling decisions are no longer appropriate for certain nodes.
-* Node failure requires pods to be moved.
-* New nodes are added to clusters.
-* Pods have been restarted too many times.
+* ノードの利用率が低すぎる（過小利用）、または高すぎる（過剰利用）。
+* 補完的な要件（テイントやラベルなど）が変更され、元のスケジューリング決定が特定のノードに対して適切ではなくなった。
+* ノードの障害により、ポッドを移動させる必要がある。
+* クラスターに新しいノードが追加された。
+* ポッドの再起動回数が多すぎる。
 
 [#dynamicreschobj]
 == Objectives
 
-In this module, we will guide you through the process of using the *Descheduler* using the *KubeVirtRelieveAndMigrate* profile.
+このモジュールでは、*KubeVirtRelieveAndMigrate* プロファイルを使用した *Descheduler（デスケジューラー）* の使用プロセスをご案内します。
 
-  ** This profile evicts pods from high-cost nodes to reduce overall resource expenses and enable workload migration. It also periodically rebalances workloads to help maintain similar spare capacity across nodes, which supports better handling of sudden workload spikes. Nodes can experience the following costs:
+** このプロファイルは、リソースコストの高いノードからポッドを立ち退かせることで、全体的なリソース費用を削減し、ワークロードのマイグレーションを可能にします。また、定期的にワークロードの再バランスを行うことで、ノード間で同様の余剰容量を維持し、突発的なワークロードの急増（スパイク）への対応力を高めます。ノードは以下のようなコストに直面する可能性があります。
 
-  *** Resource utilization: Increased resource pressure raises the overhead for running applications.
-  *** Node maintenance: A higher number of containers on a node increases resource consumption and maintenance costs.
+*** リソース利用率：リソースの圧迫が増すと、実行中のアプリケーションのオーバーヘッドが高くなります。
+*** ノードのメンテナンス：ノード上のコンテナ数が増えると、リソース消費量とメンテナンスコストが増加します。
 
 [#dynamicreschreq]
 == Requirements
 
-* Descheduler Operator is installed
-* The *KubeVirtRelieveAndMigrate* profile is configured
-* PSI metrics are enabled on all worker nodes
+* Descheduler Operator がインストールされていること
+* *KubeVirtRelieveAndMigrate* プロファイルが構成されていること
+* すべてのワーカーノードで PSI メトリクスが有効になっていること
 
-For your convenience, all of the requirements are already enabled in the lab.
+受講者の利便性のため、これらの要件はすべてラボ環境であらかじめ有効化されています。
 
-NOTE: PSI (Pressure Stall Information) is a Linux kernel feature that measures and reports the time tasks spend waiting for CPU, memory, or I/O resources, providing visibility into resource contention and saturation. It quantifies how much time processes are stalled waiting for resources, helping identify performance bottlenecks by showing what percentage of time your system is under pressure from insufficient resources.
+NOTE: PSI（Pressure Stall Information）は、タスクがCPU、メモリ、またはI/Oリソースを待つために費やした時間を計測・報告するLinuxカーネルの機能であり、リソースの競合や飽和状態を可視化します。プロセスがリソースを待つためにどれだけの時間ストール（失速）したかを定量化し、システムがリソース不足による圧力を受けている時間の割合を示すことで、パフォーマンスのボトルネックを特定するのに役立ちます。
 
 include::lab-access.adoc[]
 
 [#dynamicreschinstructions]
 == Instructions
 
-. Ensure you are <<labaccess,logged in to the OpenShift CLI as the *admin* user>> from the *terminal* window on the right side of your screen and continue to the next step.
-
+. 画面右側の *ターミナル* ウィンドウから、*admin* ユーザーとして OpenShift CLI にログインしていることを確認し、次のステップに進みます。
 +
-. Start the *dynamic-schedule-vm1* Virtual Machine
+
+. *dynamic-schedule-vm-1* 仮想マシンを起動します。
 
 +
 [.wrap,console,role=execute]
@@ -70,16 +71,14 @@ virtctl start dynamic-schedule-vm-1 -n dynamic-schedule
 ----
 VM dynamic-schedule-vm-1 was scheduled to start
 ----
-
 +
-. Check which virtual machine is running in the *dynamic-schedule* namespace
+. *dynamic-schedule* ネームスペースでどの仮想マシンが実行されているかを確認します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
 ----
 oc get vmi -n dynamic-schedule
 ----
-
 +
 [source,console]
 ----
@@ -88,7 +87,7 @@ dynamic-schedule-vm-1   2m41s   Running   10.232.0.240   control-plane-cluster-j
 ----
 
 +
-. Observe the Descheduler Operator configuration
+. デスケジューラー（Descheduler）Operator の構成を確認します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
@@ -122,13 +121,13 @@ spec:
 +
 [NOTE]
 ====
-By default, the mode is set to *Predictive* which means it only *simulates and logs* potential pod evictions. It does *not* actually perform any evictions.
+デフォルトでは、モードが *Predictive（予測）* に設定されています。これは、立ち退き処理の *シミュレーションとログ記録* のみを行うことを意味し、実際の立ち退き（Eviction）は *行われません*。
 
-To *enable eviction*, set the mode to *Automatic*.
+実際の立ち退きを *有効にする* には、モードを *Automatic（自動）* に設定する必要があります。
 ====
 
 +
-. Ensure the descheduler pod is running and check the logs in the *openshift-kube-descheduler-operator* namespace
+. デスケジューラーのポッドが実行されていることを確認し、*openshift-kube-descheduler-operator* ネームスペースのログを確認します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
@@ -153,25 +152,23 @@ I0102 13:57:26.543827       1 descheduler.go:403] "Number of evictions/requests"
 ----
 
 +
-. Deploy a stress test pod to show the descheduler functionality
-
+. デスケジューラーの機能を実証するために、負荷テスト（ストレスストスト）用ポッドをデプロイします。
 +
-.. Patch the existing *stress-test* deployment to use a *nodeSelector* so that the pod runs on the node where at the VM is running.
-
+.. 既存の *stress-test* デプロイメントにパッチを適用して *nodeSelector* を使用し、VMが実行されているノードと同じノードでポッドが実行されるようにします。
 +
-We do this by setting the *nodeSelector* key *kubernetes.io/hostname* dynamically by:
-
-... Getting all of the nodes
-... Filter the result on the specific node where the *dynamic-schedule-vm-1* VM is running
+*nodeSelector* のキーである *kubernetes.io/hostname* を動的に設定するために、以下を行います。
++
+... すべてのノードを取得する
+... *dynamic-schedule-vm-1* VMが実行されている特定のノードで結果をフィルタリングする
 
 +
 [.wrap,console,role=execute,subs="attributes"]
 ----
-oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"kubernetes.io/hostname\":\"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))\"}}}}}"
+oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))"}}}}}"
 ----
 
 +
-.. Scale the deployment
+.. デプロイメントをスケール（拡張）します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
@@ -180,24 +177,22 @@ oc -n dynamic-schedule-stress-test scale deployment stress-test --replicas=1
 ----
 
 +
-.. Verify the pod is running
+.. ポッドが実行中であることを確認します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
 ----
 oc get pods -n dynamic-schedule-stress-test -o wide
 ----
-
-. Edit the kubedescheduler cluster resource to set the *deschedulingIntervalSeconds* to a lower value for testing purposes.
++
+. テスト目的のため、kubedescheduler クラスターリソースを編集して *deschedulingIntervalSeconds* を低い値に設定します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
 ----
 oc -n openshift-kube-descheduler-operator patch kubedescheduler cluster --type merge -p '{"spec":{"deschedulingIntervalSeconds":5}}'
 ----
-
-+
-. View the descheduler pod logs in the *openshift-kube-descheduler-operator* namespace
+. *openshift-kube-descheduler-operator* ネームスペース内のデスケジューラーポッドのログを表示します。
 
 +
 [.wrap,console,role=execute,subs="attributes"]
@@ -218,11 +213,11 @@ I1113 15:30:00.673755       1 evictions.go:551] "Evicted pod in dry run mode" po
 +
 [NOTE]
 ====
-We can see that the *virt-launcher-dynamic-schedule-vm-1-lltlv* pod would have been evicted but the *Descheduler* was in *dry run* or *Predictive* mode.
+*virt-launcher-dynamic-schedule-vm-1-lltlv* ポッドが立ち退き（Evict）対象になったことが確認できますが、*Descheduler* がドライラン（Dry run）または *Predictive（予測）* モードであるため、実際には実行されていません。
 ====
 
 +
-. To actually evict, set the *Descheduler* mode to *Automatic*.
+. 実際に立ち退きを実行させるため、*Descheduler* のモードを *Automatic（自動）* に設定します。
 
 +
 [.wrap,console,role="execute",subs="attributes"]
@@ -231,8 +226,7 @@ oc -n openshift-kube-descheduler-operator patch kubedescheduler cluster --type m
 ----
 
 +
-. Verify the descheduler pod logs in the openshift-kube-descheduler-operator namespace
-
+. openshift-kube-descheduler-operator ネームスペース内のデスケジューラーポッドのログを確認します。
 +
 [.wrap,console,role="execute",subs="attributes"]
 ----
@@ -257,13 +251,13 @@ I0102 14:53:52.963143       1 lownodeutilization.go:210] "Node has been classifi
 +
 [NOTE]
 ====
-We can see that we have one overutilized node where the stress-test pod is running.
+stress-test ポッドが実行されているノードが過剰利用（Overutilized）ノードとして検出されたことが確認できます。
 
-Because of this the VM will be migrated to another node.
+これにより、VMは自動的に別のノードへマイグレーション（移行）されます。
 ====
 
 +
-. Confirm the pods are evicted and rescheduled on another node (using the *-w* watch parameter as it can take some time for the eviction to happen)
+. ポッドが立ち退かされ、別のノードに再スケジュールされていることを確認します（立ち退きが発生するまで少し時間がかかる場合があるため、監視用に *-w* パラメーターを使用します）。
 
 +
 [.wrap,console,role="execute",subs="attributes"]
@@ -276,21 +270,21 @@ oc get pods -n dynamic-schedule -o wide -w
 .Output
 ----
 NAME                                        READY   STATUS      RESTARTS   AGE     IP             NODE                            NOMINATED NODE   READINESS GATES
-virt-launcher-dynamic-schedule-vm-1-lltlv   0/2     Completed   0          31m     10.232.0.240   control-plane-cluster-jlkcx-1   <none>           1/1
-virt-launcher-dynamic-schedule-vm-1-n6ct7   2/2     Running     0          2m37s   10.234.0.84    worker-cluster-jlkcx-2          <none>           1/1
+virt-launcher-dynamic-schedule-vm-1-lltlv   0/2     Completed   0          31m     10.232.0.240   control-plane-cluster-jlkcx-1              1/1
+virt-launcher-dynamic-schedule-vm-1-n6ct7   2/2     Running     0          2m37s   10.234.0.84    worker-cluster-jlkcx-2                     1/1
 ----
 
 +
-. You can confirm the eviction is working by moving the stress test pod to the new node where the VM is running and watch it move again.
+. 立ち退きが正常に機能していることをさらに確認するために、負荷テスト（stress-test）ポッドをVMが現在実行されている新しいノードに移動させ、VMが再度移動するのを監視してみましょう。
 
 +
 [.wrap,console,role="execute",subs="attributes"]
 ----
-oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"kubernetes.io/hostname\":\"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))\"}}}}}"
+oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))"}}}}}"
 ----
 
 +
-The patch will change the *nodeSelector* and trigger a rollout of the *stress-test* deployment, pushing it back to node where the *dynamic-schedule-vm-1* VM is running.
+このパッチは *nodeSelector* を変更し、*stress-test* デプロイメントのロールアウトをトリガーして、*dynamic-schedule-vm-1* VMが実行されているノードにポッドを再度プッシュします。
 
 +
 [.wrap,console,role="execute",subs="attributes"]
@@ -303,13 +297,13 @@ oc get pods -n dynamic-schedule -o wide -w
 .Output
 ----
 NAME                                        READY   STATUS      RESTARTS   AGE     IP             NODE                            NOMINATED NODE   READINESS GATES
-virt-launcher-dynamic-schedule-vm-1-4qhnq   2/2     Running     0          4m28s   10.232.1.70    control-plane-cluster-jlkcx-1   <none>           1/1
-virt-launcher-dynamic-schedule-vm-1-n6ct7   0/2     Completed   0          9m49s   10.234.0.84    worker-cluster-jlkcx-2          <none>           1/1
+virt-launcher-dynamic-schedule-vm-1-4qhnq   2/2     Running     0          4m28s   10.232.1.70    control-plane-cluster-jlkcx-1              1/1
+virt-launcher-dynamic-schedule-vm-1-n6ct7   0/2     Completed   0          9m49s   10.234.0.84    worker-cluster-jlkcx-2                     1/1
 ----
 
 [IMPORTANT]
 ====
-Scale down the *dynamic-schedule-stress-test* deployment and stop the *dynamic-schedule-vm-1* VM using *virtctl* from your *Terminal* window to ensure you have enough resources for the next labs.
+次のラボ用に十分なリソースを確保するため、*dynamic-schedule-stress-test* デプロイメントをスケールダウンし、*Terminal（ターミナル）* ウィンドウから *virtctl* を使用して *dynamic-schedule-vm-1* VM を停止してください。
 
 [.wrap,console,role=execute,subs="attributes"]
 ----
@@ -323,5 +317,5 @@ oc -n dynamic-schedule-stress-test scale deployment stress-test --replicas=0
 virtctl stop dynamic-schedule-vm-1 -n dynamic-schedule
 ----
 
-*VM dynamic-schedule-vm-1 was scheduled to stop*
+# *VM dynamic-schedule-vm-1 was scheduled to stop*
 ====
