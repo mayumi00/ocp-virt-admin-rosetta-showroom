@@ -81,7 +81,7 @@ image::exercise1/01-vm-start-002.png[title="Running Virtual Machine", link=self,
 
 [NOTE]
 ====
-仮想マシンが現在実行されているノードを確認するには、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（一般）* ボックスの *Node（ノード）* 名を確認します。この例では、ノードは *worker-cluster-m2ssq-1* です。
+仮想マシンが現在実行されているノードを確認するには、*VirtualMachine details（VirtualMachine の詳細）* ページの右側にある *General（一般）* ボックスの *Node（ノード）* 名を確認します。この例では、ノードは *worker-cluster-m2ssq-1* です。
 ====
 +
 image::exercise1/01-image-compute-002.png[title="Virtual machine details", link=self, window=blank, width=100%]
@@ -110,7 +110,7 @@ image::exercise1/01-image-compute-006.png[title="VM is migrating", link=self, wi
 +
 [NOTE]
 ====
-*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（一般）* ボックスをもう一度見ると、ノードが変更されていることが確認できます。
+*VirtualMachine details（VirtualMachine の詳細）* ページの右側にある *General（一般）* ボックスをもう一度見ると、ノードが変更されていることが確認できます。
 ====
 +
 image::exercise1/01-image-compute-007.png[title="VM is running", link=self, window=blank, width=100%]
@@ -171,7 +171,7 @@ image::exercise1/01-image-compute-006.png[title="VM is migrating", link=self, wi
 +
 [NOTE]
 ====
-*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（一般）* ボックスをもう一度確認すると、ノードが変更されており、特にリストから選択したノードに変わっていることがわかります。
+*VirtualMachine details（VirtualMachine の詳細）* ページの右側にある *General（一般）* ボックスをもう一度確認すると、ノードが変更されており、特にリストから選択したノードに変わっていることがわかります。
 ====
 
 +
