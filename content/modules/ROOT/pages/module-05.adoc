@@ -164,7 +164,7 @@ I0102 13:57:26.543827       1 descheduler.go:403] "Number of evictions/requests"
 +
 [.wrap,console,role=execute,subs="attributes"]
 ----
-oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))"}}}}}"
+oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"kubernetes.io/hostname\":\"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))\"}}}}}"
 ----
 
 +
@@ -280,7 +280,7 @@ virt-launcher-dynamic-schedule-vm-1-n6ct7   2/2     Running     0          2m37s
 +
 [.wrap,console,role="execute",subs="attributes"]
 ----
-oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))"}}}}}"
+oc -n dynamic-schedule-stress-test patch deployment stress-test --type merge -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"kubernetes.io/hostname\":\"$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi dynamic-schedule-vm-1 -n dynamic-schedule -o json | jq -r '.status.nodeName'))\"}}}}}"
 ----
 
 +
@@ -317,5 +317,5 @@ oc -n dynamic-schedule-stress-test scale deployment stress-test --replicas=0
 virtctl stop dynamic-schedule-vm-1 -n dynamic-schedule
 ----
 
-# *VM dynamic-schedule-vm-1 was scheduled to stop*
+*VM dynamic-schedule-vm-1 was scheduled to stop*
 ====
