@@ -41,7 +41,7 @@ OpenShift Virtualizationにおいて、仮想マシン（VM）に割り当てら
 [#cpuinstructions]
 === Instructions
 
-. *Webブラウザ*からOpenShiftコンソールに、画面右側の*ターミナル*ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
+. *Webブラウザ* からOpenShiftコンソールに、画面右側の *ターミナル* ウィンドウからCLIに、それぞれ *admin* ユーザーとしてログインしていることを確認し、次のステップに進みます。
 +
 
 . CPUオーバーコミットを理解するには、まずワーカーノードで利用可能な物理CPUコアの数を特定する必要があります。
@@ -108,7 +108,7 @@ oc get node $(oc get nodes -o custom-columns=":metadata.name" --no-headers | gre
 ----
 
 +
-.. *OpenShiftコンソール*を使用して、*Compute（コンピュート） → Nodes（ノード）* に移動し、主要な仕様を確認することもできます。
+.. *OpenShiftコンソール* を使用して、*Compute（コンピュート） → Nodes（ノード）* に移動し、主要な仕様を確認することもできます。
 
 +
 image::exercise2/node-details.png[title="Confirm number of CPUs", link=self, window=blank, width=100%]
@@ -160,7 +160,7 @@ oc get vm overcommit-vm-1 -n over-commit -o jsonpath='{.spec.template.spec.domai
 image::exercise2/start-vm.png[title="Start VM", link=self, window=blank, width=100%]
 
 +
-... または、*ターミナル*ウィンドウから *virtctl* を使用して起動することもできます。
+... または、*ターミナル* ウィンドウから *virtctl* を使用して起動することもできます。
 
 +
 [,shell,role="execute wrap",subs="attributes"]
@@ -252,16 +252,13 @@ overcommit-vm-1   75m   Running   10.232.0.121   control-plane-cluster-qc86c-1  
 [,shell,role="execute wrap",subs="attributes"]
 ----
 NODE=$(oc get nodes -o custom-columns=":metadata.name" --no-headers | grep $(oc get vmi overcommit-vm-1 -n over-commit -o json | jq -r '.status.nodeName'))
-oc get vmi -A -o json | 
-
-jq -r --arg NODE "$NODE" 
-
+oc get vmi -A -o json | \
+jq -r --arg NODE "$NODE" \
 '.items[] | select(.status.nodeName == $NODE) |
 {
-name: .metadata.name,
-total_vcpus: ((.spec.domain.cpu.sockets // 1) * (.spec.domain.cpu.cores // 1) * (.spec.domain.cpu.threads // 1))
-}' | 
-
+  name: .metadata.name,
+  total_vcpus: ((.spec.domain.cpu.sockets // 1) * (.spec.domain.cpu.cores // 1) * (.spec.domain.cpu.threads // 1))
+}' | \
 jq -s 'map(.total_vcpus) | add'
 ----
 
@@ -313,8 +310,7 @@ virt-launcher-overcommit-vm-1-rtspw   2/2     Running   0          47m
 +
 [,shell,role="execute wrap",subs="attributes"]
 ----
-oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 
-
+oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 \
 -o jsonpath='{.items[0].spec.containers[?(@.name=="compute")].resources}{"\n"}' | jq
 ----
 
@@ -343,7 +339,7 @@ oc get pods -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1
 *OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 
 +
-*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
+*Project（プロジェクト）* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 
 +
 *virt-launcher* ポッドをクリックし、*YAML* タブに移動して *cpu requests* の値を確認します。
@@ -426,7 +422,7 @@ oc get vm -n over-commit overcommit-vm-1 -o json | jq .spec.template.spec.domain
 +
 *OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 +
-*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
+*Project（プロジェクト）* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 +
 *virt-launcher* ポッドをクリックし、*YAML* タブに移動して *memory requests* の値を確認します。
 
@@ -455,9 +451,9 @@ IMPORTANT: このオーバーヘッドは必要かつ想定されているもの
 
 . メモリオーバーコミットの有効化
 +
-*OpenShiftコンソール* を使用し、*Virtualization（仮想化） → Overview（概要） → Settings（設定） → Cluster（クラスター） → General Settings（全般設定）* に移動します。
+*OpenShiftコンソール* を使用し、*Virtualization（仮想化） → Overview（概要） → Settings（設定） → Cluster（クラスター） → General Settings（一般設定）* に移動します。
 +
-*トグルスイッチ* をクリックして、「Enable Memory Density（メモリ密度の有効化）」にします。
+*メモリー密度* を展開し、*トグルスイッチ* をクリックして、「Enable Memory Density（メモリー密度を有効にする）」にします。
 
 +
 image::exercise2/enable-memory-overcommit.png[title="Enable Memory Overcommit", link=self, window=blank, width=100%]
@@ -497,7 +493,7 @@ VM overcommit-vm-1 was scheduled to restart
 +
 *OpenShiftコンソール* を使用し、*Workloads（ワークロード） → Pods（ポッド）* に移動します。
 +
-*Project:* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
+*Project（プロジェクト）* ドロップダウンから *over-commit* ネームスペースを選択し、VMの *virt-launcher* ポッドを確認します。
 +
 *virt-launcher* ポッドをクリックし、*YAML* タブに移動して *memory requests* の値を確認します。
 
@@ -588,5 +584,5 @@ oc get pod -n over-commit -l vm.kubevirt.io/name=overcommit-vm-1 -o json | jq '.
 ----
 virtctl stop overcommit-vm-1 -n over-commit
 ----
-*VM overcommit-vm-1 was scheduled to stop*
+VM overcommit-vm-1 was scheduled to stop*
 ====
