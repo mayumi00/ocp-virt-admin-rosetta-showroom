@@ -58,7 +58,7 @@ VM hot-plug-vm1 was scheduled to start
 ----
 
 +
-. *Configuration（構成）* タブをクリックし、まだ選択されていない場合は *Details（詳細）* を選択します。
+. *Configuration（設定）* タブをクリックし、まだ選択されていない場合は *Details（詳細）* を選択します。
 +
 InstanceTypeが *General Purpose* で、*1 CPU | 2GiB Memory* になっていることが確認できます。
 
@@ -148,12 +148,12 @@ image::exercise3/03-image-cpu-007.png[title="Verify new resources", link=self, w
 image::exercise3/03-image-disk-001.png[title="hot-plug-vm1 details", link=self, window=blank, width=100%]
 
 +
-. *Configuration（構成）* タブをクリックし、*Storage（ストレージ）* を選択します。仮想マシンには現在、*ocs-external-storagecluster-ceph-rbd* という名前の *Storage class（ストレージクラス）* を使用している30GBのブート可能ディスクが1つだけ存在していることが確認できます。
+. *Configuration（設定）* タブをクリックし、*Storage（ストレージ）* を選択します。仮想マシンには現在、*ocs-external-storagecluster-ceph-rbd* という名前の *Storage class（ストレージクラス）* を使用している30GBのブート可能ディスクが1つだけ存在していることが確認できます。
 
 +
 image::exercise3/03-image-disk-002.png[title="VM has only one disk", link=self, window=blank, width=100%]
 
-. *Disks（ディスク）* の下にある *Add（追加）* ボタンをクリックし、*Empty disk (blank)（空のディスク（ブランク））* を選択して空のディスクを追加します。
+. *Disks（ディスク）* の下にある *Add（追加）* ボタンをクリックし、*Empty disk (blank)（空のディスク（空白））* を選択して空のディスクを追加します。
 
 +
 image::exercise3/03-image-disk-003.png[title="Add an empty disk", link=self, window=blank, width=100%]
@@ -213,11 +213,11 @@ virt-launcher-hot-plug-vm1-rb6lg    2/2     Running     0          147m
 . 次に、ホットプラグしたディスクを仮想マシンから取り外します。
 
 +
-. *OpenShiftコンソール*を 使用し、*Virtualization（仮想化） → Virtual Machines（仮想マシン）* に移動します。
+. *OpenShiftコンソール* を 使用し、 *Virtualization（仮想化） → Virtual Machines（仮想マシン）* に移動します。
 +
 *All projects（すべてのプロジェクト）* の下で、*hot-plug* ネームスペースを選択し、*hot-plug-vm1* VMを選択します。
 +
-*Configuration（構成）* タブをクリックし、*Storage（ストレージ）* を選択します。
+*Configuration（設定）* タブをクリックし、*Storage（ストレージ）* を選択します。
 +
 後でボーナスラボで使用する可能性があるため、削除するオブジェクトの名前（例：*dv-hot-plug-vm1-data-disk-01-um6O11*）を書き留めておいてください。
 +
@@ -263,7 +263,7 @@ image::exercise3/03-image-disk-013.png[title="Disk is removed in OS", link=self,
 image::exercise3/03-image-disk-persist-002.png[title="Stop the VM", link=self, window=blank, width=100%]
 
 +
-. *Configuration（構成）* タブをクリックし、*Storage（ストレージ）* を選択します。
+. *Configuration（設定）* タブをクリックし、*Storage（ストレージ）* を選択します。
 +
 *Add（追加）* プレダウンメニューをクリックし、*Volume（ボリューム）* を選択します。
 +
@@ -321,7 +321,7 @@ image::exercise3/03-image-disk-persist-007.png[title="The disk is attached", lin
 image::exercise3/03-image-nic-002.png[title="Identify the worker node", link=self, window=blank, width=100%]
 
 +
-. *Configuration（構成）* タブをクリックし、*Network（ネットワーク）* を選択します。
+. *Configuration（設定）* タブをクリックし、*Network（ネットワーク）* を選択します。
 +
 VMに現在 *単一のNIC* しか存在しないことを確認します。
 
@@ -382,3 +382,4 @@ image::exercise3/03-image-nic-009.png[title="New NIC is up", link=self, window=b
 virtctl stop hot-plug-vm1 -n hot-plug
 ----
 *VM hot-plug-vm1 was scheduled to stop*
+====
