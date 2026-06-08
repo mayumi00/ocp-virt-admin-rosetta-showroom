@@ -428,7 +428,7 @@ vm-migration-ns-ns-live   7m1s   Migrating   False
 +
 左側のサイドパネルから、*Virtualization（仮想化） -> Virtual Machines（仮想マシン）* に移動します。*All projects（すべてのプロジェクト）* の下で、*vm-live-migration-source* ネームスペースを選択し、*vm-migration-ns-ns-live* という名前の仮想マシンをクリックします。
 +
-*Virtual machine details（仮想マシンの詳細）* ページで、移行元（*Source*）のVMが *Running（実行中）* であることが確認できます。
+*Virtual machine details（VirtualMachine の詳細）* ページで、移行元（*Source*）のVMが *Running（実行中）* であることが確認できます。
 
 +
 image::exercise7/image1-ui-src-vm-running.png[title="Source Virtual Machine Details - Running", link=self, window=blank, width=100%]
@@ -436,7 +436,7 @@ image::exercise7/image1-ui-src-vm-running.png[title="Source Virtual Machine Deta
 +
 移行先（*Destination*）のVMを表示するには、*Namespace* ドロップダウンから *vm-live-migration-destination* を選択して展開し、*vm-migration-ns-ns-live* という名前の仮想マシンをクリックします。
 +
-*Virtual machine details（仮想マシンの詳細）* ページに、移行先のVMが表示されます。マイグレーションがまだ開始されていない場合、ステータスは *WaitingForReceiver* になります。
+*Virtual machine details（VirtualMachine の詳細）* ページに、移行先のVMが表示されます。マイグレーションがまだ開始されていない場合、ステータスは *WaitingForReceiver* になります。
 
 +
 image::exercise7/image2-ui-dest-waiting.png[title="Destination Virtual Machine Details - WaitingForReceiver", link=self, window=blank, width=100%]
@@ -460,11 +460,11 @@ image::exercise7/image4-ui-dest-migrating.png[title="Destination Virtual Machine
 image::exercise7/image5-ui-migrating-overview-panel.png[title="Destination Virtual Machine - Migration Pop-up Panel", link=self, window=blank, width=100%]
 
 +
-*Migrating* ポップアップパネル内に、*Migration metrics（マイグレーションメトリクス）* というリンクがあります。そのリンクをクリックすると、VMとマイグレーションに関する詳細情報が含まれる *Metrics（メトリクス）* タブに移動します。
+*Migrating* ポップアップパネル内に、*Migration metrics（移行メトリクス）* というリンクがあります。そのリンクをクリックすると、VMとマイグレーションに関する詳細情報が含まれる *Metrics（メトリクス）* タブに移動します。
 +
 image::exercise7/image6-ui-dest-migrating-metrics.png[title="Destination Virtual Machine - Migration Metrics", link=self, window=blank, width=100%]
 +
-*Metrics* ページを下にスクロールすると、さらなるマイグレーションメトリクスと *LiveMigration progress（ライブマイグレーションの進捗）* バーが表示されます。
+*Metrics* ページを下にスクロールすると、さらなるMigration metrics（移行メトリクス）と *LiveMigration progress（LiveMigration の進捗）* バーが表示されます。
 +
 image::exercise7/image7-ui-dest-migrating-metrics2.png[title="Destination Virtual Machine - Migration Metrics", link=self, window=blank, width=100%]
 +
@@ -559,7 +559,7 @@ image::exercise7/ui/image1-click-migration-plans.png[title="Migration Plans", li
 +
 [NOTE]
 ====
-*Create plan* ボタンがグレーアウトしている場合は、ページ上部の *Project:* ドロップダウンから、プロジェクトが *openshift-mtv* または *All projects（すべてのプロジェクト）* に選択されていることを確認してください。
+*Create plan* ボタンがグレーアウトしている場合は、ページ上部の *Project（プロジェクト）* ドロップダウンから、プロジェクトが *openshift-mtv* または *All projects（すべてのプロジェクト）* に選択されていることを確認してください。
 ====
 +
 image::exercise7/ui/image2-click-create-plans.png[title="Create Migration Plan", link=self, window=blank, width=100%]
