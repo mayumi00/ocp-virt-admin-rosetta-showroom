@@ -117,13 +117,13 @@ image::exercise4/04-image-affinity-check-labels.png[title="Check the Label", lin
 *All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*node-affinity-vm* という名前の仮想マシンをクリックします。
 
 +
-. *Configuration（構成）* タブをクリックします。
+. *Configuration（設定）* タブをクリックします。
 
 +
 image::exercise4/04-image-affinity01.png[title="Node Affinity Navigation", link=self, window=blank, width=100%]
 
 +
-. *Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
+. *Configuration（設定）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 +
 image::exercise4/04-image-affinity02.png[title="Node Affinity add rule", link=self, window=blank, width=100%]
 +
@@ -192,7 +192,7 @@ VM node-affinity-vm was scheduled to restart
 +
 . VMが再起動すると、アフィニティラベルが設定されたノード上で実行されます。
 +
-これは、GUIで *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
+これは、GUIで *node-affinity-vm* に移動し、*VirtualMachine details（VirtualMachineの詳細）* ページの右側にある *General（一般）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
@@ -401,9 +401,9 @@ pod-affinity-vm    1m2s   Running   10.232.0.218   control-plane-cluster-dvddt-1
 +
 . VMが起動したら、OpenShiftコンソールを使用し、左側のサイドパネルから *Virtualization（仮想化） → VirtualMachines（仮想マシン）* に移動します。
 +
-*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-affinity-vm* という名前の仮想マシンをクリックして *Configuration（構成）* タブをクリックします。
+*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-affinity-vm* という名前の仮想マシンをクリックして *Configuration（設定）* タブをクリックします。
 +
-*Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
+*Configuration（設定）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 
 +
 image::exercise4/04-image-affinity04.png[title="Pod Affinity Rule", link=self, window=blank, width=100%]
@@ -488,7 +488,7 @@ VM pod-affinity-vm was scheduled to restart
 +
 . VMが再起動すると、ポッドアフィニティが有効になります。
 +
-これは、GUIで *pod-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
+これは、GUIで *pod-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（一般）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
@@ -560,9 +560,9 @@ pod-anti-affinity-vm   1m    Running   10.233.0.44   worker-cluster-dvddt-1   Tr
 +
 . VMが起動したら、OpenShiftコンソールを使用し、left side panelから *Virtualization（仮想化） → VirtualMachines（仮想マシン）* に移動します。
 +
-*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-anti-affinity-vm* という名前の仮想マシンをクリックして *Configuration（構成）* タブをクリックします。
+*All projects（すべてのプロジェクト）* の下で、*affinity* ネームスペースを選択し、*pod-anti-affinity-vm* という名前の仮想マシンをクリックして *Configuration（設定）* タブをクリックします。
 +
-*Configuration（構成）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
+*Configuration（設定）* タブから *Scheduling（スケジューリング）* を選択し、*Affinity rules（アフィニティルール）* の下にある *青い鉛筆* アイコンをクリックして新しいルールを追加します。
 
 +
 image::exercise4/04-image-affinity06.png[title="Add Pod Anti-Affinity Rule", link=self, window=blank, width=100%]
@@ -650,7 +650,7 @@ VM pod-anti-affinity-vm was scheduled to restart
 +
 . VMが再起動すると、ポッドアンチアフィニティが有効になります。
 +
-これは、GUIで *pod-anti-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（仮想マシンの詳細）* ページの右側にある *General（概要）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
+これは、GUIで *pod-anti-affinity-vm* および *node-affinity-vm* に移動し、*VirtualMachine details（VirtualMachineの詳細）* ページの右側にある *General（一般）* ボックスの *Node（ノード）* 名を確認するか、OCP CLIを使用して検証できます。
 
 +
 [source,text,role=execute]
